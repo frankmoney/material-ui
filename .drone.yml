@@ -2,8 +2,8 @@ pipeline:
   build:
     image: node:7
     commands:
-      - echo $NPMRC > .npmrc
-      - echo $NPMRC
+      - echo ${NPMRC} > .npmrc
+      - echo ${NPMRC}
       - npm install --loglevel info
       - npm run build
       - cd build
