@@ -2,7 +2,9 @@ pipeline:
   build:
     image: node:7
     commands:
-      - cat $NPMRC > .npmrc
-      - npm install
+      - echo $NPMRC > .npmrc
+      - echo $NPMRC
+      - npm install --loglevel info
       - npm run build
+      - cd build
       - npm publish
