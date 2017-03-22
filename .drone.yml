@@ -4,7 +4,7 @@ pipeline:
     commands:
       - echo ${NPMRC} > .npmrc
       - echo ${NPMRC}
-      - npm install --loglevel info
+      - npm install --loglevel warn
       - npm run build
       - cd build
       - npm publish
