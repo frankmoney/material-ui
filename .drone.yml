@@ -1,0 +1,8 @@
+pipeline:
+  build:
+    image: node:7
+    commands:
+      - cat $NPMRC > .npmrc
+      - npm install
+      - npm run build
+      - npm publish
