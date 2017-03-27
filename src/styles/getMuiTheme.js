@@ -327,6 +327,9 @@ export default function getMuiTheme(muiTheme, ...more) {
       color: white,
       rippleBackgroundColor: grey700,
     },
+    circularProgress: {
+      thickness: 2
+    }
   }, muiTheme, {
     baseTheme, // To provide backward compatibility.
     rawTheme: baseTheme, // To provide backward compatibility.
