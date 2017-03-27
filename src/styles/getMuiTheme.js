@@ -328,7 +328,8 @@ export default function getMuiTheme(muiTheme, ...more) {
       rippleBackgroundColor: grey700,
     },
     circularProgress: {
-      thickness: 2
+      thickness: 2,
+      color: palette.primary1Color
     }
   }, muiTheme, {
     baseTheme, // To provide backward compatibility.

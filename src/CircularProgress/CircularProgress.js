@@ -41,7 +41,7 @@ function getStyles(props, context) {
       position: 'relative',
     },
     path: {
-      stroke: props.color || palette.primary1Color,
+      stroke: props.color || context.muiTheme.circularProgress.color,
       strokeLinecap: 'round',
       transition: transitions.create('all', '1.5s', null, 'ease-in-out'),
     },
