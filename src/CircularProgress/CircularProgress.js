@@ -15,7 +15,7 @@ function getStyles(props, context) {
   const {
     max,
     min,
-    size = this.context.muiTheme.circularProgress.size || 40,
+    size = context.muiTheme.circularProgress.size || 40,
     value,
   } = props;
 
