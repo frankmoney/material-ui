@@ -102,7 +102,8 @@ class CircularProgress extends Component {
     value: 0,
     min: 0,
     max: 100,
-    size: 50
+    size: 50,
+    thickness: 2
   };
 
   static contextTypes = {
@@ -161,7 +162,7 @@ class CircularProgress extends Component {
       style,
       innerStyle,
       size,
-      thickness = this.context.muiTheme.circularProgress.thickness || 3.5,
+      thickness,
       ...other
     } = this.props;
 
