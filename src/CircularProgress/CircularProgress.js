@@ -41,7 +41,7 @@ function getStyles(props, context) {
       position: 'relative',
     },
     path: {
-      stroke: props.color || palette.primary1Color,
+      stroke: props.color || context.muiTheme.circularProgress.color,
       strokeLinecap: 'round',
       transition: transitions.create('all', '1.5s', null, 'ease-in-out'),
     },
@@ -102,8 +102,8 @@ class CircularProgress extends Component {
     value: 0,
     min: 0,
     max: 100,
-    size: 40,
-    thickness: 3.5,
+    size: 50,
+    thickness: 2
   };
 
   static contextTypes = {
