@@ -1,4 +1,5 @@
-import React, {Component, PropTypes} from 'react';
+import React, {Component} from 'react';
+import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import keycode from 'keycode';
 import TextField from '../TextField';
@@ -401,7 +402,10 @@ class AutoComplete extends Component {
       menuProps,
       listStyle,
       targetOrigin,
+      onBlur, // eslint-disable-line no-unused-vars
       onClose, // eslint-disable-line no-unused-vars
+      onFocus, // eslint-disable-line no-unused-vars
+      onKeyDown, // eslint-disable-line no-unused-vars
       onNewRequest, // eslint-disable-line no-unused-vars
       onUpdateInput, // eslint-disable-line no-unused-vars
       openOnFocus, // eslint-disable-line no-unused-vars
@@ -486,7 +490,6 @@ class AutoComplete extends Component {
 
     const menu = open && requestsList.length > 0 && (
       <Menu
-        {...menuProps}
         ref="menu"
         autoWidth={false}
         disableAutoFocus={focusTextField}
@@ -496,6 +499,7 @@ class AutoComplete extends Component {
         onMouseDown={this.handleMouseDown}
         style={Object.assign(styles.menu, menuStyle)}
         listStyle={Object.assign(styles.list, listStyle)}
+        {...menuProps}
       >
         {requestsList.map((i) => i.value)}
       </Menu>
@@ -504,7 +508,6 @@ class AutoComplete extends Component {
     return (
       <div style={prepareStyles(Object.assign(styles.root, style))} >
         <TextField
-          {...other}
           ref="searchTextField"
           autoComplete="off"
           value={searchText}
@@ -518,6 +521,7 @@ class AutoComplete extends Component {
           multiLine={false}
           errorStyle={errorStyle}
           style={textFieldStyle}
+          {...other}
         />
         <Popover
           style={Object.assign({}, styles.popover, popoverStyle)}

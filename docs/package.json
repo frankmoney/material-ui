@@ -1,6 +1,6 @@
 {
   "name": "material-ui-docs",
-  "version": "0.17.1",
+  "version": "0.17.4",
   "description": "Documentation site for Material-UI",
   "repository": {
     "type": "git",
@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "babel-polyfill": "^6.16.0",
+    "material-ui-persian-date-picker-utils": "^0.0.3",
     "react-title-component": "^1.0.1",
     "simple-assign": "^0.1.0"
   },
