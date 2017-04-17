@@ -1,0 +1,10 @@
+pipeline:
+  build:
+    image: node:7
+    commands:
+      - npm install --loglevel warn
+      - npm run build
+      - cd build
+      - echo ${NPMRC} > .npmrc
+      - cat .npmrc
+      - npm publish
