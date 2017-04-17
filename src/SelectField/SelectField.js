@@ -190,7 +190,7 @@ class SelectField extends Component {
       menuItemStyle,
       selectedMenuItemStyle,
       underlineStyle,
-      dropDownMenuProps,
+      dropDownMenuProps = {},
       errorStyle,
       disabled,
       floatingLabelFixed,
@@ -212,6 +212,18 @@ class SelectField extends Component {
     } = this.props;
 
     const styles = getStyles(this.props, this.context);
+    if (floatingLabelText) {
+      if (!dropDownMenuProps.popoverProps) {
+        dropDownMenuProps.popoverProps = {}
+      }
+      if (!dropDownMenuProps.popoverProps.style) {
+        dropDownMenuProps.popoverProps.style = {}
+      }
+
+      Object.assign(dropDownMenuProps.popoverProps.style, {
+        marginTop: 24
+      })
+    }
 
     return (
       <TextField

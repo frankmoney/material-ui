@@ -204,6 +204,10 @@ class DropDownMenu extends Component {
      * If provided, the menu will be a controlled component.
      */
     value: PropTypes.any,
+    /**
+     * Overrides the inline-styles of the Popover.
+     */
+    popoverProps: PropTypes.object,
   };
 
   static defaultProps = {
@@ -365,6 +369,7 @@ class DropDownMenu extends Component {
       iconStyle,
       labelStyle,
       listStyle,
+      popoverProps,
       maxHeight,
       menuStyle: menuStyleProp,
       selectionRenderer,
@@ -463,6 +468,7 @@ class DropDownMenu extends Component {
           open={open}
           animated={animated}
           onRequestClose={this.handleRequestCloseMenu}
+          {...popoverProps}
         >
           <Menu
             multiple={multiple}
