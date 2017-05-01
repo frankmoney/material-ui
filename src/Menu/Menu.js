@@ -289,7 +289,7 @@ class Menu extends Component {
 
       Object.assign(extraProps, {
         focusState: focusState,
-        onTouchTap: (event) => {
+        onClick: (event) => {
           this.handleMenuItemTouchTap(event, child, index);
           if (child.props.onTouchTap) child.props.onTouchTap(event);
         },
