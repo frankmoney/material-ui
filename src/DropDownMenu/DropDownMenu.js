@@ -12,7 +12,6 @@ import Events from '../utils/events';
 import IconButton from '../IconButton';
 import propTypes from '../utils/propTypes';
 
-
 function getStyles(props, context) {
   const {disabled} = props;
   const spacing = context.muiTheme.baseTheme.spacing;
@@ -323,7 +322,7 @@ class DropDownMenu extends Component {
     } else {
       event.persist();
       this.setState({
-        open: false,
+        open: true, //it was false, but we still have close action - why the hell we should change it false then?
       }, () => {
         if (this.props.onChange) {
           this.props.onChange(event, index, child.props.value);
@@ -426,7 +425,8 @@ class DropDownMenu extends Component {
     }
 
     let menuStyle;
-    if (anchorEl && !autoWidth) {
+    // If we want to get correct width for dependable dropdownmenu we should know anchor width too
+    if (anchorEl /*&& !autoWidth*/) {
       menuStyle = Object.assign({
         width: anchorEl.clientWidth,
       }, menuStyleProp);
@@ -471,6 +471,7 @@ class DropDownMenu extends Component {
           {...popoverProps}
         >
           <Menu
+            autoWidth={autoWidth}
             multiple={multiple}
             maxHeight={maxHeight}
             desktop={true}

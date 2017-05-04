@@ -30,12 +30,13 @@ function getStyles(props, context, state) {
       overflow: 'hidden',
     },
   };
-
+  /*
   if (anchorEl && fullWidth) {
     styles.popover = {
       width: anchorEl.clientWidth,
     };
   }
+  */
 
   return styles;
 }
@@ -54,6 +55,12 @@ class AutoComplete extends Component {
      * Override the default animation component used.
      */
     animation: PropTypes.func,
+    /**
+     * If true, the width will automatically be set according to the
+     * items inside the menu.
+     * To control the width in CSS instead, leave this prop set to `false`.
+     */
+    autoWidth: PropTypes.bool,
     /**
      * Array of strings or nodes used to populate the list.
      */
@@ -104,6 +111,12 @@ class AutoComplete extends Component {
      * Override style for list.
      */
     listStyle: PropTypes.object,
+    /**
+     * The maximum height of the menu in pixels. If specified,
+     * the menu will be scrollable if it is taller than the provided
+     * height.
+     */
+    maxHeight: PropTypes.number,
     /**
      * The max number of search results to be shown.
      * By default it shows all the items which matches filter.
@@ -184,6 +197,7 @@ class AutoComplete extends Component {
       horizontal: 'left',
     },
     animated: true,
+    autoWidth: false,
     dataSourceConfig: {
       text: 'text',
       value: 'value',
@@ -391,6 +405,7 @@ class AutoComplete extends Component {
       anchorOrigin,
       animated,
       animation,
+      autoWidth,
       dataSource,
       dataSourceConfig, // eslint-disable-line no-unused-vars
       disableFocusRipple,
@@ -400,6 +415,7 @@ class AutoComplete extends Component {
       fullWidth,
       style,
       hintText,
+      maxHeight,
       maxSearchResults,
       menuCloseDelay, // eslint-disable-line no-unused-vars
       textFieldStyle,
@@ -493,16 +509,24 @@ class AutoComplete extends Component {
 
     this.requestsList = requestsList;
 
+    //We dont use DropDownMenu component here - which usually transfer width from anchor element to its child Menu component
+    const anchorWidth = anchorEl ? {width: anchorEl.clientWidth} : {}
+
+    const menuStyleProp = Object.assign({}, styles.menu, anchorWidth, menuStyle)
+    const popoverStyleProp = Object.assign({}, styles.popover, popoverStyle)
+
     const menu = open && requestsList.length > 0 && (
       <Menu
         ref="menu"
-        autoWidth={false}
+        anchorEl={anchorEl}
+        autoWidth={autoWidth}
         disableAutoFocus={focusTextField}
         onEscKeyDown={this.handleEscKeyDown}
         initiallyKeyboardFocused={true}
+        maxHeight={maxHeight}
         onItemTouchTap={this.handleItemTouchTap}
         onMouseDown={this.handleMouseDown}
-        style={Object.assign(styles.menu, menuStyle)}
+        style={menuStyleProp}
         listStyle={Object.assign(styles.list, listStyle)}
         {...menuProps}
       >
@@ -531,7 +555,7 @@ class AutoComplete extends Component {
           onChange={this.handleChange}
         />
         <Popover
-          style={Object.assign({}, styles.popover, popoverStyle)}
+          style={popoverStyleProp}
           canAutoPosition={false}
           anchorOrigin={anchorOrigin}
           targetOrigin={targetOrigin}

@@ -195,6 +195,7 @@ class Popover extends Component {
       useLayerForClickAway, // eslint-disable-line no-unused-vars
       ...other
     } = this.props;
+    const {closing, open} = this.state;
 
     let styleRoot = style;
 
@@ -222,7 +223,8 @@ class Popover extends Component {
         targetOrigin={targetOrigin}
         style={styleRoot}
         {...other}
-        open={this.state.open && !this.state.closing}
+        open={open}
+        closing={closing}
       >
         {children}
       </Animation>

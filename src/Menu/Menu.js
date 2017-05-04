@@ -1,12 +1,21 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
+import maxBy from 'lodash/maxBy';
 import shallowEqual from 'recompose/shallowEqual';
 import ClickAwayListener from '../internal/ClickAwayListener';
 import keycode from 'keycode';
 import propTypes from '../utils/propTypes';
 import List from '../List/List';
 import {HotKeyHolder} from './menuUtils';
+
+function getTextWidthViaCanvas(text, font) {
+  const element = document.createElement("canvas");
+  const context = element.getContext("2d");
+  context.font = font;
+  return Math.round(context.measureText(text).width);
+}
+
 
 function getStyles(props, context) {
   const {
@@ -45,6 +54,11 @@ function getStyles(props, context) {
 
 class Menu extends Component {
   static propTypes = {
+    /**
+     * This is the DOM element that will be used to set the position of the
+     * popover.
+     */
+    anchorEl: PropTypes.object,
     /**
      * If true, the width of the menu will be set automatically
      * according to the widths of its children,
@@ -449,13 +463,14 @@ class Menu extends Component {
   setScollPosition() {
     const desktop = this.props.desktop;
     const focusedMenuItem = this.refs.focusedMenuItem;
-    const menuItemHeight = desktop ? 32 : 48;
+    //const menuItemHeight = desktop ? 32 : 48;
+    const menuItemHeight = this.props.menuItemStyle.height;
 
     if (focusedMenuItem) {
       const selectedOffSet = ReactDOM.findDOMNode(focusedMenuItem).offsetTop;
 
       // Make the focused item be the 2nd item in the list the user sees
-      let scrollTop = selectedOffSet - menuItemHeight;
+      let scrollTop = selectedOffSet/* - menuItemHeight*/;
       if (scrollTop < menuItemHeight) scrollTop = 0;
 
       ReactDOM.findDOMNode(this.refs.scrollContainer).scrollTop = scrollTop;
@@ -489,19 +504,35 @@ class Menu extends Component {
   setWidth() {
     const el = ReactDOM.findDOMNode(this);
     const listEl = ReactDOM.findDOMNode(this.refs.list);
-    const elWidth = el.offsetWidth;
+    const minWidth = this.props.anchorEl ? this.props.anchorEl.offsetWidth : el.offsetWidth;
+    /*
     const keyWidth = this.state.keyWidth;
     const minWidth = keyWidth * 1.5;
     let keyIncrements = elWidth / keyWidth;
+    */
     let newWidth;
 
-    keyIncrements = keyIncrements <= 1.5 ? 1.5 : Math.ceil(keyIncrements);
-    newWidth = keyIncrements * keyWidth;
+    // search between childrens for longest label and generate it's width based on input style
+    const children = this.props.children;
+    const maxWidthChild = maxBy(children, (child) => {
+      return child.props.primaryText.length
+    });
+    const longestText = maxWidthChild.props.primaryText;
+    const menuItemStyle = Object.assign({}, {fontFamily: this.context.muiTheme.fontFamily, paddingLeft: 0, paddingRight: 0, paddingBottom: 0, paddingTop: 0}, this.props.menuItemStyle);
+    const fontInfo = menuItemStyle.fontSize + 'px ' + menuItemStyle.fontFamily;
+    const hasScrollbar = this.props.maxHeight && this.props.maxHeight/menuItemStyle.height < children.length
+
+    newWidth = getTextWidthViaCanvas(longestText, fontInfo) + menuItemStyle.paddingLeft + menuItemStyle.paddingRight;
+
+    //keyIncrements = keyIncrements <= 1.5 ? 1.5 : Math.ceil(keyIncrements);
+    //newWidth = keyIncrements * keyWidth;
 
     if (newWidth < minWidth) newWidth = minWidth;
 
-    el.style.width = `${newWidth}px`;
+    el.style.width = `${newWidth + (hasScrollbar ? 17 : 0)}px`;
+    el.style.maxWidth = `${newWidth+ (hasScrollbar ? 17 : 0)}px`;
     listEl.style.width = `${newWidth}px`;
+    //listEl.style.width = `${newWidth}px`;
   }
 
   render() {

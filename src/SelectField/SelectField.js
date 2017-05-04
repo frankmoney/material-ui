@@ -25,6 +25,15 @@ function getStyles(props) {
 class SelectField extends Component {
   static propTypes = {
     /**
+     * If true, the popover will apply transitions when
+     * it gets added to the DOM.
+     */
+    animated: PropTypes.bool,
+    /**
+     * Override the default animation component used.
+     */
+    animation: PropTypes.func,
+    /**
      * If true, the width will automatically be set according to the
      * items inside the menu.
      * To control the width in CSS instead, leave this prop set to `false`.
@@ -166,6 +175,7 @@ class SelectField extends Component {
   };
 
   static defaultProps = {
+    animated: true,
     autoWidth: false,
     disabled: false,
     fullWidth: false,
@@ -178,6 +188,8 @@ class SelectField extends Component {
 
   render() {
     const {
+      animated,
+      animation,
       autoWidth,
       multiple,
       children,
@@ -246,6 +258,8 @@ class SelectField extends Component {
         underlineFocusStyle={underlineFocusStyle}
       >
         <DropDownMenu
+          animated={animated}
+          animation={animation}
           disabled={disabled}
           style={Object.assign(styles.dropDownMenu, menuStyle)}
           labelStyle={Object.assign(styles.label, labelStyle)}
