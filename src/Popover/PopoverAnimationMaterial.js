@@ -3,15 +3,15 @@ import PropTypes from 'prop-types';
 import Paper from '../Paper';
 import transitions from '../styles/transitions';
 import propTypes from '../utils/propTypes';
+import compact from 'lodash/compact'
+import isArray from 'lodash/isArray'
+
 
 function getStyles(props, context, state) {
   const {targetOrigin} = props;
   const {open, closing} = state;
   const {muiTheme} = context;
   const horizontal = targetOrigin.horizontal.replace('middle', 'vertical');
-
-  console.log('what type animation is:')
-  console.log(closing ? 'dropdownCloseAnimation' : 'dropdownOpenAnimation')
 
   return {
     root: {
@@ -85,17 +85,19 @@ class PopoverAnimationMaterial extends Component {
     } = this.props;
 
     const styles = getStyles(this.props, this.context, this.state);
-    const newChildren = React.Children.map(this.props.children, (child, index) => {
+    const filteredChildren = isArray(this.props.children) ? compact(this.props.children) : this.props.children
 
-      const childName = child.type ? child.type.muiName : '';
-      let newChild = child;
+    const newChildren = filteredChildren
+      ? React.Children.map(filteredChildren, (child, index) => {
+        //const childName = child.type ? child.type.muiName : '';
+        let newChild = child;
+        newChild = React.cloneElement(child, {
+          style: Object.assign({}, styles.child, child.props.style),
+        });
 
-      newChild = React.cloneElement(child, {
-        style: Object.assign({}, styles.child, child.props.style),
-      });
-
-      return newChild;
-    });
+        return newChild;
+      })
+      : filteredChildren;
 
     return (
       <Paper

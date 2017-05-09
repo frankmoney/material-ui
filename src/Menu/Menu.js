@@ -16,7 +16,6 @@ function getTextWidthViaCanvas(text, font) {
   return Math.round(context.measureText(text).width);
 }
 
-
 function getStyles(props, context) {
   const {
     desktop,
@@ -240,8 +239,8 @@ class Menu extends Component {
     );
   }
 
-  componentDidUpdate() {
-    if (this.props.autoWidth) this.setWidth();
+  componentDidUpdate(nextProps) {
+    if (this.props.autoWidth && !shallowEqual(this.props.children, nextProps.children)) this.setWidth();
   }
 
   handleClickAway = (event) => {
@@ -518,8 +517,9 @@ class Menu extends Component {
       return child.props.primaryText.length
     });
     const longestText = maxWidthChild.props.primaryText;
-    const menuItemStyle = Object.assign({}, {fontFamily: this.context.muiTheme.fontFamily, paddingLeft: 0, paddingRight: 0, paddingBottom: 0, paddingTop: 0}, this.props.menuItemStyle);
-    const fontInfo = menuItemStyle.fontSize + 'px ' + menuItemStyle.fontFamily;
+    const menuItemStyle = Object.assign({}, {fontFamily: this.context.muiTheme.fontFamily, paddingLeft: 0, paddingRight: 0, paddingBottom: 0, paddingTop: 0}, this.props.menuItemStyle, this.props.selectedMenuItemStyle
+    );
+    const fontInfo = (menuItemStyle.fontWeight ? menuItemStyle.fontWeight + ' ' : '') + menuItemStyle.fontSize + 'px ' + menuItemStyle.fontFamily;
     const hasScrollbar = this.props.maxHeight && this.props.maxHeight/menuItemStyle.height < children.length
 
     newWidth = getTextWidthViaCanvas(longestText, fontInfo) + menuItemStyle.paddingLeft + menuItemStyle.paddingRight;
@@ -530,7 +530,7 @@ class Menu extends Component {
     if (newWidth < minWidth) newWidth = minWidth;
 
     el.style.width = `${newWidth + (hasScrollbar ? 17 : 0)}px`;
-    el.style.maxWidth = `${newWidth+ (hasScrollbar ? 17 : 0)}px`;
+    el.style.maxWidth = `${newWidth + (hasScrollbar ? 17 : 0)}px`;
     listEl.style.width = `${newWidth}px`;
     //listEl.style.width = `${newWidth}px`;
   }
