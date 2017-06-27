@@ -19,12 +19,13 @@ const getStyles = (props, context, state) => {
       disabledTextColor,
       backgroundColor,
       errorColor,
+      fontSize
     },
   } = context.muiTheme;
 
   const styles = {
     root: {
-      fontSize: 16,
+      fontSize: fontSize || 16,
       lineHeight: '24px',
       width: props.fullWidth ? '100%' : 256,
       height: (props.rows - 1) * 24 + (props.floatingLabelText ? 72 : 48),

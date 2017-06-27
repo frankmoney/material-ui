@@ -56,6 +56,10 @@ class IconButton extends Component {
      */
     hoveredStyle: PropTypes.object,
     /**
+     * Override the inline-styles of the icon element when the component is hovered.
+     */
+    hoveredIconStyle: PropTypes.object,
+    /**
      * The URL to link to when the button is clicked.
      */
     href: PropTypes.string,
@@ -241,6 +245,7 @@ class IconButton extends Component {
       tooltipStyles,
       touch,
       iconStyle,
+      hoveredIconStyle,
       ...other
     } = this.props;
     let fonticon;
@@ -289,7 +294,7 @@ class IconButton extends Component {
       );
     }
 
-    const childrenStyle = disabled ? Object.assign({}, iconStyle, styles.disabled) : iconStyle;
+    const childrenStyle = disabled ? Object.assign({}, iconStyle, styles.disabled) : Object.assign({}, iconStyle, hovered && hoveredIconStyle);
 
     return (
       <EnhancedButton
