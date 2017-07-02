@@ -15,6 +15,12 @@ const styles = {
   },
 };
 
+const rootBaseStyle = {
+  borderRadius: 8,
+  overflow: 'hidden',
+  boxShadow: '0 5px 10px 0 rgba(0,0,0,0.15), 0px 0px 0px 1px rgba(0, 0, 0, 0.1)'
+}
+
 class Popover extends Component {
   static propTypes = {
     /**
@@ -197,7 +203,7 @@ class Popover extends Component {
     } = this.props;
     const {closing, open} = this.state;
 
-    let styleRoot = style;
+    let styleRoot = Object.assign({}, rootBaseStyle, style);
 
     if (!animated) {
       styleRoot = {
@@ -210,7 +216,7 @@ class Popover extends Component {
       }
 
       return (
-        <Paper style={Object.assign(styleRoot, style)} {...other}>
+        <Paper style={Object.assign(styleRoot, rootBaseStyle, style)} {...other}>
           {children}
         </Paper>
       );
