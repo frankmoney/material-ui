@@ -1,1 +1,3 @@
-export default from './Checkbox';
+// @flow
+
+export { default } from './Checkbox';

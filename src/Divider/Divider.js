@@ -1,53 +1,74 @@
+// @flow weak
+
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
+import createStyleSheet from '../styles/createStyleSheet';
+import withStyles from '../styles/withStyles';
 
-const Divider = (props, context) => {
-  const {
-    inset,
-    style,
-    ...other
-  } = props;
+export const styleSheet = createStyleSheet('MuiDivider', theme => ({
+  root: {
+    height: 1,
+    margin: 0, // Reset browser default style.
+    border: 'none',
+  },
+  default: {
+    backgroundColor: theme.palette.text.divider,
+  },
+  inset: {
+    marginLeft: 72,
+  },
+  light: {
+    backgroundColor: theme.palette.text.lightDivider,
+  },
+  absolute: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: '100%',
+  },
+}));
 
-  const {
-    baseTheme,
-    prepareStyles,
-  } = context.muiTheme;
+function Divider(props) {
+  const { absolute, classes, className: classNameProp, inset, light, ...other } = props;
 
-  const styles = {
-    root: {
-      margin: 0,
-      marginTop: -1,
-      marginLeft: inset ? 72 : 0,
-      height: 1,
-      border: 'none',
-      backgroundColor: baseTheme.palette.borderColor,
+  const className = classNames(
+    classes.root,
+    {
+      [classes.absolute]: absolute,
+      [classes.inset]: inset,
+      [light ? classes.light : classes.default]: true,
     },
-  };
-
-  return (
-    <hr {...other} style={prepareStyles(Object.assign(styles.root, style))} />
+    classNameProp,
   );
-};
 
-Divider.muiName = 'Divider';
+  return <hr className={className} {...other} />;
+}
 
 Divider.propTypes = {
+  absolute: PropTypes.bool,
   /**
-   * If true, the `Divider` will be indented.
+   * Useful to extend the style applied to components.
+   */
+  classes: PropTypes.object.isRequired,
+  /**
+   * @ignore
+   */
+  className: PropTypes.string,
+  /**
+   * If `true`, the divider will be indented.
    */
   inset: PropTypes.bool,
   /**
-   * Override the inline-styles of the root element.
+   * If `true`, the divider will have a lighter color.
    */
-  style: PropTypes.object,
+  light: PropTypes.bool,
 };
 
 Divider.defaultProps = {
+  absolute: false,
   inset: false,
+  light: false,
 };
 
-Divider.contextTypes = {
-  muiTheme: PropTypes.object.isRequired,
-};
-
-export default Divider;
+export default withStyles(styleSheet)(Divider);

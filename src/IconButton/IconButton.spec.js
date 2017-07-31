@@ -1,95 +1,104 @@
-/* eslint-env mocha */
-import React from 'react';
-import PropTypes from 'prop-types';
-import {mount, shallow} from 'enzyme';
-import {assert} from 'chai';
-import IconButton from './IconButton';
-import FontIcon from '../FontIcon';
-import getMuiTheme from '../styles/getMuiTheme';
-import TouchRipple from '../internal/TouchRipple';
+// @flow
 
-const dummy = <div />;
+import React from 'react';
+import { assert } from 'chai';
+import { createShallow, getClasses } from '../test-utils';
+import Icon from '../Icon';
+import IconButton, { styleSheet } from './IconButton';
 
 describe('<IconButton />', () => {
-  const muiTheme = getMuiTheme();
-  const shallowWithContext = (node) => shallow(node, {context: {muiTheme}});
-  const mountWithContext = (node) => mount(node, {
-    context: {muiTheme},
-    childContextTypes: {muiTheme: PropTypes.object},
+  let shallow;
+  let classes;
+
+  before(() => {
+    shallow = createShallow({ dive: true });
+    classes = getClasses(styleSheet);
   });
 
-  it('renders an enhanced button', () => {
-    const wrapper = shallowWithContext(
-      <IconButton>Button</IconButton>
-    );
-    assert.strictEqual(wrapper.is('EnhancedButton'), true);
+  it('should render a ButtonBase', () => {
+    const wrapper = shallow(<IconButton>book</IconButton>);
+    assert.strictEqual(wrapper.name(), 'withStyles(ButtonBase)');
   });
 
-  it('renders children', () => {
-    const wrapper = shallowWithContext(
-      <IconButton>{dummy}</IconButton>
-    );
-    assert.strictEqual(wrapper.containsMatchingElement(dummy), true, 'should contain the children');
+  it('should render an inner label span (bloody safari)', () => {
+    const wrapper = shallow(<IconButton>book</IconButton>);
+    const label = wrapper.childAt(0);
+    assert.strictEqual(label.hasClass(classes.label), true, 'should have the label class');
+    assert.strictEqual(label.is('span'), true, 'should be a span');
   });
 
-  it('should render children with custom color', () => {
-    const wrapper = shallowWithContext(
+  it('should render a font icon if a string is provided', () => {
+    const wrapper = shallow(<IconButton>book</IconButton>);
+    const label = wrapper.childAt(0);
+    const icon = label.childAt(0);
+    assert.strictEqual(icon.is(Icon), true, 'should be an Icon');
+  });
+
+  it('should render the child normally inside the label span', () => {
+    const child = <p>H</p>;
+    const wrapper = shallow(
       <IconButton>
-        <FontIcon className="material-icons" color="red">home</FontIcon>
-      </IconButton>
+        {child}
+      </IconButton>,
     );
-
-    assert.strictEqual(wrapper.find(FontIcon).length, 1, 'should contain the FontIcon child');
-    assert.strictEqual(wrapper.find(FontIcon).props().color, 'red', 'FontIcon should have color set to red');
-    assert.strictEqual(
-      wrapper.find(FontIcon).props().style.color,
-      undefined,
-      'FontIcon style object has no color property'
-    );
+    const label = wrapper.childAt(0);
+    const icon = label.childAt(0);
+    assert.strictEqual(icon.equals(child), true, 'should be the child');
   });
 
-  describe('prop: hoveredStyle', () => {
-    it('should apply the style when hovered', () => {
-      const hoveredStyle = {
-        backgroundColor: 'blue',
-      };
-      const wrapper = shallowWithContext(
-        <IconButton hoveredStyle={hoveredStyle} />
-      );
-
-      wrapper.simulate('mouseEnter');
-
-      assert.include(wrapper.props().style, hoveredStyle);
-    });
-
-    it('should override the style prop', () => {
-      const buttonStyle = {
-        backgroundColor: 'blue',
-      };
-      const hoveredStyle = {
-        backgroundColor: 'green',
-      };
-      const wrapper = shallowWithContext(
-        <IconButton style={buttonStyle} hoveredStyle={hoveredStyle} />
-      );
-
-      wrapper.simulate('mouseEnter');
-
-      assert.include(wrapper.props().style, hoveredStyle);
-    });
+  it('should render Icon children with right classes', () => {
+    const childClassName = 'child-woof';
+    const iconChild = <Icon className={childClassName} />;
+    const buttonClassName = 'button-woof';
+    const wrapper = shallow(
+      <IconButton classes={{ icon: buttonClassName }}>
+        {iconChild}
+      </IconButton>,
+    );
+    const label = wrapper.childAt(0);
+    const renderedIconChild = label.childAt(0);
+    assert.strictEqual(renderedIconChild.is(Icon), true, 'child should be icon');
+    assert.strictEqual(renderedIconChild.hasClass(childClassName), true, 'child should be icon');
+    assert.strictEqual(renderedIconChild.hasClass(buttonClassName), true, 'child should be icon');
+    assert.strictEqual(renderedIconChild.hasClass(classes.icon), true, 'child should be icon');
   });
+
+  it('should have a ripple by default', () => {
+    const wrapper = shallow(<IconButton>book</IconButton>);
+    assert.strictEqual(wrapper.props().disableRipple, false);
+  });
+
+  it('should pass disableRipple to ButtonBase', () => {
+    const wrapper = shallow(<IconButton disableRipple>book</IconButton>);
+    assert.strictEqual(wrapper.props().disableRipple, true);
+  });
+
+  it('should spread props on ButtonBase', () => {
+    const wrapper = shallow(
+      <IconButton data-test="hello" disableRipple>
+        book
+      </IconButton>,
+    );
+    assert.strictEqual(wrapper.prop('data-test'), 'hello', 'should be spread on the ButtonBase');
+    assert.strictEqual(wrapper.props().disableRipple, true);
+  });
+
+  it('should render with the user and root classes', () => {
+    const wrapper = shallow(<IconButton className="woof">book</IconButton>);
+    assert.strictEqual(wrapper.hasClass('woof'), true);
+    assert.strictEqual(wrapper.hasClass(classes.root), true);
+  });
+
+  it('should pass centerRipple={true} to ButtonBase', () => {
+    const wrapper = shallow(<IconButton>book</IconButton>);
+    assert.strictEqual(wrapper.props().centerRipple, true, 'should set centerRipple to true');
+  });
+
   describe('prop: disabled', () => {
-    it('should disable the ripple effect', () => {
-      const wrapper = mountWithContext(
-        <IconButton disabled={true} />
-      );
-      assert.strictEqual(wrapper.find(TouchRipple).length, 0, 'should not contain a TouchRipple descendent');
-    });
-    it('should not disable the ripple effect if false', () => {
-      const wrapper = mountWithContext(
-        <IconButton disabled={false} />
-      );
-      assert.strictEqual(wrapper.find(TouchRipple).length, 1, 'should contain a TouchRipple descendent');
+    it('should disable the component', () => {
+      const wrapper = shallow(<IconButton disabled>book</IconButton>);
+      assert.strictEqual(wrapper.props().disabled, true, 'should pass the property down the tree');
+      assert.strictEqual(wrapper.hasClass(classes.disabled), true, 'should add the disabled class');
     });
   });
 });

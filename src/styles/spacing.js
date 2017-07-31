@@ -1,14 +1,7 @@
-export default {
-  iconSize: 24,
+// @flow
 
-  desktopGutter: 24,
-  desktopGutterMore: 32,
-  desktopGutterLess: 16,
-  desktopGutterMini: 8,
-  desktopKeylineIncrement: 64,
-  desktopDropDownMenuItemHeight: 32,
-  desktopDropDownMenuFontSize: 15,
-  desktopDrawerMenuItemHeight: 48,
-  desktopSubheaderHeight: 48,
-  desktopToolbarHeight: 56,
+export default {
+  // All components align to an 8dp square baseline grid for mobile, tablet, and desktop.
+  // https://material.io/guidelines/layout/metrics-keylines.html#metrics-keylines-baseline-grids
+  unit: 8,
 };

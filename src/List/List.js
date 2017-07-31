@@ -1,52 +1,124 @@
-import React, {Component, Children, isValidElement} from 'react';
+// @flow
+
+import React, { Component } from 'react';
+import type { Element } from 'react';
 import PropTypes from 'prop-types';
-import Subheader from '../Subheader';
+import classNames from 'classnames';
+import createStyleSheet from '../styles/createStyleSheet';
+import withStyles from '../styles/withStyles';
 
-class List extends Component {
-  static propTypes = {
-    /**
-     * These are usually `ListItem`s that are passed to
-     * be part of the list.
-     */
-    children: PropTypes.node,
-    /**
-     * Override the inline-styles of the root element.
-     */
-    style: PropTypes.object,
+export const styleSheet = createStyleSheet('MuiList', theme => ({
+  root: {
+    flex: '1 1 auto',
+    overflow: 'auto',
+    listStyle: 'none',
+    margin: 0,
+    padding: 0,
+  },
+  padding: {
+    paddingTop: theme.spacing.unit,
+    paddingBottom: theme.spacing.unit,
+  },
+  dense: {
+    paddingTop: theme.spacing.unit / 2,
+    paddingBottom: theme.spacing.unit / 2,
+  },
+  subheader: {
+    paddingTop: 0,
+  },
+}));
+
+type DefaultProps = {
+  component: string,
+  dense: boolean,
+  disablePadding: boolean,
+};
+
+type Props = DefaultProps & {
+  /**
+   * The content of the component.
+   */
+  children?: Element<*>,
+  /**
+   * Useful to extend the style applied to components.
+   */
+  classes: Object,
+  /**
+   * @ignore
+   */
+  className?: string,
+  /**
+   * The component used for the root node.
+   * Either a string to use a DOM element or a component.
+   */
+  component?: string | Function,
+  /**
+   * If `true`, compact vertical padding designed for keyboard and mouse input will be used for
+   * the list and list items. The property is available to descendant components as the
+   * `dense` context.
+   */
+  dense?: boolean,
+  /**
+   * If `true`, vertical padding will be removed from the list.
+   */
+  disablePadding?: boolean,
+  /**
+   * Use that property to pass a ref callback to the root component.
+   */
+  rootRef?: Function,
+  /**
+   * The content of the component, normally `ListItem`.
+   */
+  subheader?: Element<*>,
+};
+
+class List extends Component<DefaultProps, Props, void> {
+  props: Props;
+  static defaultProps: DefaultProps = {
+    component: 'ul',
+    dense: false,
+    disablePadding: false,
   };
 
-  static contextTypes = {
-    muiTheme: PropTypes.object.isRequired,
-  };
+  getChildContext() {
+    return {
+      dense: this.props.dense,
+    };
+  }
 
   render() {
     const {
+      classes,
+      className: classNameProp,
+      component: ComponentProp,
+      disablePadding,
       children,
-      style,
+      dense,
+      subheader,
+      rootRef,
       ...other
     } = this.props;
-
-    const {prepareStyles} = this.context.muiTheme;
-
-    let hasSubheader = false;
-
-    const firstChild = Children.toArray(children)[0];
-    if (isValidElement(firstChild) && firstChild.type === Subheader) {
-      hasSubheader = true;
-    }
-
-    const styles = {
-      root: {
-        padding: `${hasSubheader ? 0 : 8}px 0px 8px 0px`,
+    const className = classNames(
+      classes.root,
+      {
+        [classes.dense]: dense && !disablePadding,
+        [classes.padding]: !disablePadding,
+        [classes.subheader]: subheader,
       },
-    };
+      classNameProp,
+    );
 
     return (
-      <div {...other} style={prepareStyles(Object.assign(styles.root, style))}>
+      <ComponentProp ref={rootRef} className={className} {...other}>
+        {subheader}
         {children}
-      </div>
+      </ComponentProp>
     );
   }
 }
 
-export default List;
+List.childContextTypes = {
+  dense: PropTypes.bool,
+};
+
+export default withStyles(styleSheet)(List);

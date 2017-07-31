@@ -1,124 +1,147 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
+// @flow
 
-function getStyles(props, context) {
+import React from 'react';
+import type { Element } from 'react';
+import classNames from 'classnames';
+import createStyleSheet from '../styles/createStyleSheet';
+import withStyles from '../styles/withStyles';
+import { emphasize } from '../styles/colorManipulator';
+
+export const styleSheet = createStyleSheet('MuiAvatar', theme => ({
+  root: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    width: 40,
+    height: 40,
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 20,
+    borderRadius: '50%',
+    overflow: 'hidden',
+    userSelect: 'none',
+  },
+  colorDefault: {
+    color: theme.palette.background.default,
+    backgroundColor: emphasize(theme.palette.background.default, 0.26),
+  },
+  img: {
+    maxWidth: '100%',
+    width: '100%',
+    height: 'auto',
+  },
+}));
+
+type DefaultProps = {
+  component: string,
+};
+
+type Props = DefaultProps & {
+  /**
+   * Used in combination with `src` or `srcSet` to
+   * provide an alt attribute for the rendered `img` element.
+   */
+  alt?: string,
+  /**
+   * Used to render icon or text elements inside the Avatar.
+   * `src` and `alt` props will not be used and no `img` will
+   * be rendered by default.
+   *
+   * This can be an element, or just a string.
+   */
+  children?: Element<*>,
+  /**
+   * @ignore
+   * The className of the child element.
+   * Used by Chip and ListItemIcon to style the Avatar icon.
+   */
+  childrenClassName?: string,
+  /**
+   * Useful to extend the style applied to components.
+   */
+  classes: Object,
+  /**
+   * @ignore
+   */
+  className?: string,
+  /**
+   * The component used for the root node.
+   * Either a string to use a DOM element or a component.
+   */
+  component?: string | Function,
+  /**
+   * Properties applied to the `img` element when the component
+   * is used to display an image.
+   */
+  imgProps?: Object,
+  /**
+   * The `sizes` attribute for the `img` element.
+   */
+  sizes?: string,
+  /**
+   * The `src` attribute for the `img` element.
+   */
+  src?: string,
+  /**
+   * The `srcSet` attribute for the `img` element.
+   */
+  srcSet?: string,
+};
+
+function Avatar(props: Props) {
   const {
-    backgroundColor,
-    color,
-    size,
+    alt,
+    classes,
+    className: classNameProp,
+    children: childrenProp,
+    childrenClassName: childrenClassNameProp,
+    component: ComponentProp,
+    imgProps,
+    sizes,
+    src,
+    srcSet,
+    ...other
   } = props;
 
-  const {avatar} = context.muiTheme;
-
-  const styles = {
-    root: {
-      color: color || avatar.color,
-      backgroundColor: backgroundColor || avatar.backgroundColor,
-      userSelect: 'none',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: size / 2,
-      borderRadius: '50%',
-      height: size,
-      width: size,
+  const className = classNames(
+    classes.root,
+    {
+      [classes.colorDefault]: childrenProp && !src && !srcSet,
     },
-    icon: {
-      color: color || avatar.color,
-      width: size * 0.6,
-      height: size * 0.6,
-      fontSize: size * 0.6,
-      margin: size * 0.2,
-    },
-  };
+    classNameProp,
+  );
+  let children = null;
 
-  return styles;
-}
-
-class Avatar extends Component {
-  static muiName = 'Avatar';
-
-  static propTypes = {
-    /**
-     * The backgroundColor of the avatar. Does not apply to image avatars.
-     */
-    backgroundColor: PropTypes.string,
-    /**
-     * Can be used, for instance, to render a letter inside the avatar.
-     */
-    children: PropTypes.node,
-    /**
-     * The css class name of the root `div` or `img` element.
-     */
-    className: PropTypes.string,
-    /**
-     * The icon or letter's color.
-     */
-    color: PropTypes.string,
-    /**
-     * This is the SvgIcon or FontIcon to be used inside the avatar.
-     */
-    icon: PropTypes.element,
-    /**
-     * This is the size of the avatar in pixels.
-     */
-    size: PropTypes.number,
-    /**
-     * If passed in, this component will render an img element. Otherwise, a div will be rendered.
-     */
-    src: PropTypes.string,
-    /**
-     * Override the inline-styles of the root element.
-     */
-    style: PropTypes.object,
-  };
-
-  static defaultProps = {
-    size: 40,
-  };
-
-  static contextTypes = {
-    muiTheme: PropTypes.object.isRequired,
-  };
-
-  render() {
-    const {
-      backgroundColor, // eslint-disable-line no-unused-vars
-      icon,
-      src,
-      style,
-      className,
-      ...other
-    } = this.props;
-
-    const {prepareStyles} = this.context.muiTheme;
-    const styles = getStyles(this.props, this.context);
-
-    if (src) {
-      return (
-        <img
-          style={prepareStyles(Object.assign(styles.root, style))}
-          {...other}
-          src={src}
-          className={className}
-        />
-      );
+  if (childrenProp) {
+    if (childrenClassNameProp && React.isValidElement(childrenProp)) {
+      const childrenClassName = classNames(childrenClassNameProp, childrenProp.props.className);
+      children = React.cloneElement(childrenProp, { className: childrenClassName });
     } else {
-      return (
-        <div
-          {...other}
-          style={prepareStyles(Object.assign(styles.root, style))}
-          className={className}
-        >
-          {icon && React.cloneElement(icon, {
-            color: styles.icon.color,
-            style: Object.assign(styles.icon, icon.props.style),
-          })}
-          {this.props.children}
-        </div>
-      );
+      children = childrenProp;
     }
+  } else if (src || srcSet) {
+    children = (
+      <img
+        alt={alt}
+        src={src}
+        srcSet={srcSet}
+        sizes={sizes}
+        className={classes.img}
+        {...imgProps}
+      />
+    );
   }
+
+  return (
+    <ComponentProp className={className} {...other}>
+      {children}
+    </ComponentProp>
+  );
 }
 
-export default Avatar;
+Avatar.defaultProps = {
+  component: 'div',
+};
+
+export default withStyles(styleSheet)(Avatar);

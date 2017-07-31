@@ -1,110 +1,77 @@
-import React, {Component} from 'react';
+// @flow weak
+
+import React from 'react';
 import PropTypes from 'prop-types';
-import transitions from '../styles/transitions';
+import classNames from 'classnames';
+import createStyleSheet from '../styles/createStyleSheet';
+import withStyles from '../styles/withStyles';
 
-class SvgIcon extends Component {
-  static muiName = 'SvgIcon';
+export const styleSheet = createStyleSheet('MuiSvgIcon', theme => ({
+  root: {
+    display: 'inline-block',
+    fill: 'currentColor',
+    height: 24,
+    width: 24,
+    userSelect: 'none',
+    transition: theme.transitions.create('fill', {
+      duration: theme.transitions.duration.shorter,
+    }),
+  },
+}));
 
-  static propTypes = {
-    /**
-     * Elements passed into the SVG Icon.
-     */
-    children: PropTypes.node,
-    /**
-     * This is the fill color of the svg icon.
-     * If not specified, this component will default
-     * to muiTheme.palette.textColor.
-     */
-    color: PropTypes.string,
-    /**
-     * This is the icon color when the mouse hovers over the icon.
-     */
-    hoverColor: PropTypes.string,
-    /** @ignore */
-    onMouseEnter: PropTypes.func,
-    /** @ignore */
-    onMouseLeave: PropTypes.func,
-    /**
-     * Override the inline-styles of the root element.
-     */
-    style: PropTypes.object,
-    /**
-     * Allows you to redefine what the coordinates
-     * without units mean inside an svg element. For example,
-     * if the SVG element is 500 (width) by 200 (height), and you
-     * pass viewBox="0 0 50 20", this means that the coordinates inside
-     * the svg will go from the top left corner (0,0) to bottom right (50,20)
-     * and each unit will be worth 10px.
-     */
-    viewBox: PropTypes.string,
-  };
+function SvgIcon(props) {
+  const { children, classes, className, titleAccess, viewBox, ...other } = props;
 
-  static defaultProps = {
-    onMouseEnter: () => {},
-    onMouseLeave: () => {},
-    viewBox: '0 0 24 24',
-  };
-
-  static contextTypes = {
-    muiTheme: PropTypes.object.isRequired,
-  };
-
-  state = {
-    hovered: false,
-  };
-
-  handleMouseLeave = (event) => {
-    this.setState({hovered: false});
-    this.props.onMouseLeave(event);
-  };
-
-  handleMouseEnter = (event) => {
-    this.setState({hovered: true});
-    this.props.onMouseEnter(event);
-  };
-
-  render() {
-    const {
-      children,
-      color,
-      hoverColor,
-      onMouseEnter, // eslint-disable-line no-unused-vars
-      onMouseLeave, // eslint-disable-line no-unused-vars
-      style,
-      viewBox,
-      ...other
-    } = this.props;
-
-    const {
-      svgIcon,
-      prepareStyles,
-    } = this.context.muiTheme;
-
-    const offColor = color ? color : 'currentColor';
-    const onColor = hoverColor ? hoverColor : offColor;
-
-    const mergedStyles = Object.assign({
-      display: 'inline-block',
-      color: svgIcon.color,
-      fill: this.state.hovered ? onColor : offColor,
-      height: 24,
-      width: 24,
-      userSelect: 'none',
-      transition: transitions.easeOut(),
-    }, style);
-
-    return (
-      <svg
-        {...other}
-        onMouseEnter={this.handleMouseEnter}
-        onMouseLeave={this.handleMouseLeave}
-        style={prepareStyles(mergedStyles)}
-        viewBox={viewBox}
-      >
-        {children}
-      </svg>
-    );
-  }
+  return (
+    <svg
+      className={classNames(classes.root, className)}
+      focusable={false}
+      viewBox={viewBox}
+      aria-hidden={titleAccess ? 'false' : 'true'}
+      {...other}
+    >
+      {titleAccess
+        ? <title>
+            {titleAccess}
+          </title>
+        : null}
+      {children}
+    </svg>
+  );
 }
 
-export default SvgIcon;
+SvgIcon.propTypes = {
+  /**
+   * Elements passed into the SVG Icon.
+   */
+  children: PropTypes.node,
+  /**
+   * Useful to extend the style applied to components.
+   */
+  classes: PropTypes.object.isRequired,
+  /**
+   * @ignore
+   */
+  className: PropTypes.string,
+  /**
+   * Provides a human-readable title for the element that contains it.
+   * https://www.w3.org/TR/SVG-access/#Equivalent
+   */
+  titleAccess: PropTypes.string,
+  /**
+   * Allows you to redefine what the coordinates without units mean inside an svg element.
+   * For example, if the SVG element is 500 (width) by 200 (height),
+   * and you pass viewBox="0 0 50 20",
+   * this means that the coordinates inside the svg will go from the top left corner (0,0)
+   * to bottom right (50,20) and each unit will be worth 10px.
+   */
+  viewBox: PropTypes.string,
+};
+
+SvgIcon.defaultProps = {
+  viewBox: '0 0 24 24',
+};
+
+SvgIcon.muiName = 'SvgIcon';
+
+export default withStyles(styleSheet)(SvgIcon);

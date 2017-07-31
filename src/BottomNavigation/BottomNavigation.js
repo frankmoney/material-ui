@@ -1,71 +1,82 @@
-import React, {Children, cloneElement} from 'react';
+// @flow weak
+
+import React, { Children, cloneElement } from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
+import createStyleSheet from '../styles/createStyleSheet';
+import withStyles from '../styles/withStyles';
 
-function getStyles(props, context) {
+export const styleSheet = createStyleSheet('MuiBottomNavigation', theme => ({
+  root: {
+    display: 'flex',
+    justifyContent: 'center',
+    height: 56,
+    backgroundColor: theme.palette.background.paper,
+  },
+}));
+
+function BottomNavigation(props) {
   const {
-    bottomNavigation,
-  } = context.muiTheme;
-
-  const styles = {
-    root: {
-      position: 'relative',
-      width: '100%',
-      display: 'flex',
-      justifyContent: 'center',
-      backgroundColor: bottomNavigation.backgroundColor,
-      height: bottomNavigation.height,
-    },
-    item: {
-      flex: '1',
-    },
-  };
-
-  return styles;
-}
-
-const BottomNavigation = (props, context) => {
-  const {
-    children,
-    style,
-    selectedIndex,
+    children: childrenProp,
+    classes,
+    className: classNameProp,
+    value,
+    onChange,
+    showLabels,
     ...other
   } = props;
 
-  const {prepareStyles} = context.muiTheme;
-  const styles = getStyles(props, context);
+  const className = classNames(classes.root, classNameProp);
 
-  const preparedChildren = Children.map(children, (child, index) => {
+  const children = Children.map(childrenProp, (child, childIndex) => {
     return cloneElement(child, {
-      style: Object.assign({}, styles.item, child.props.style),
-      selected: index === selectedIndex,
+      selected: childIndex === value,
+      showLabel: child.props.showLabel !== undefined ? child.props.showLabel : showLabels,
+      value: child.props.value || childIndex,
+      onChange,
     });
   });
 
   return (
-    <div {...other} style={prepareStyles(Object.assign({}, styles.root, style))}>
-      {preparedChildren}
+    <div className={className} {...other}>
+      {children}
     </div>
   );
-};
+}
 
 BottomNavigation.propTypes = {
   /**
-   * The `BottomNavigationItem`s to populate the element with.
+   * The content of the component.
    */
-  children: PropTypes.node,
+  children: PropTypes.node.isRequired,
   /**
-   * The index of the currently selected navigation item.
+   * Useful to extend the style applied to components.
    */
-  selectedIndex: PropTypes.number,
+  classes: PropTypes.object.isRequired,
   /**
    * @ignore
-   * Override the inline-styles of the root element.
    */
-  style: PropTypes.object,
+  className: PropTypes.string,
+  /**
+   * Callback fired when the value changes.
+   *
+   * @param {object} event The event source of the callback
+   * @param {any} value We default to the index of the child
+   */
+  onChange: PropTypes.func,
+  /**
+   * If `true`, all `BottomNavigationButton`s will show their labels.
+   * By default only the selected `BottomNavigationButton` will show its label.
+   */
+  showLabels: PropTypes.bool,
+  /**
+   * The value of the currently selected `BottomNavigationButton`.
+   */
+  value: PropTypes.any,
 };
 
-BottomNavigation.contextTypes = {
-  muiTheme: PropTypes.object.isRequired,
+BottomNavigation.defaultProps = {
+  showLabels: false,
 };
 
-export default BottomNavigation;
+export default withStyles(styleSheet)(BottomNavigation);

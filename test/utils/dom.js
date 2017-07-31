@@ -1,26 +1,28 @@
-import {jsdom} from 'jsdom';
-import injectTapEventPlugin from 'react-tap-event-plugin';
+// @flow
 
-// Needed for onTouchTap
-// http://stackoverflow.com/a/34015469/988941
-injectTapEventPlugin();
+const { JSDOM } = require('jsdom');
 
-/**
- * Bootstrap the DOM environment in node
- */
+// We can use jsdom-global at some point if maintaining that list turns out to be a burden.
+const KEYS = ['HTMLElement'];
 
-const exposedProperties = ['window', 'navigator', 'document'];
+function createDOM() {
+  const dom = new JSDOM('');
+  global.document = dom.document;
+  global.window = dom.window;
 
-global.document = jsdom('');
-global.window = document.defaultView;
+  Object.keys(dom.window).forEach(property => {
+    if (typeof global[property] === 'undefined') {
+      global[property] = dom.window[property];
+    }
+  });
 
-Object.keys(document.defaultView).forEach((property) => {
-  if (typeof global[property] === 'undefined') {
-    exposedProperties.push(property);
-    global[property] = document.defaultView[property];
-  }
-});
+  global.navigator = {
+    userAgent: 'node.js',
+  };
 
-global.navigator = {
-  userAgent: 'node.js',
-};
+  KEYS.forEach(key => {
+    global[key] = window[key];
+  });
+}
+
+module.exports = createDOM;

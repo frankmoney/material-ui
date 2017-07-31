@@ -1,118 +1,90 @@
-import React, {Component} from 'react';
+// @flow weak
+
+import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
+import createStyleSheet from '../styles/createStyleSheet';
+import withStyles from '../styles/withStyles';
+import { capitalizeFirstLetter } from '../utils/helpers';
 
-function getStyles(props, context) {
-  const {primary, secondary} = props;
-  const {badge} = context.muiTheme;
+const RADIUS = 12;
 
-  let badgeBackgroundColor;
-  let badgeTextColor;
+export const styleSheet = createStyleSheet('MuiBadge', theme => ({
+  root: {
+    position: 'relative',
+    display: 'inline-block',
+  },
+  badge: {
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    top: -RADIUS,
+    right: -RADIUS,
+    fontFamily: theme.typography.fontFamily,
+    fontWeight: theme.typography.fontWeight,
+    fontSize: RADIUS,
+    width: RADIUS * 2,
+    height: RADIUS * 2,
+    borderRadius: '50%',
+    backgroundColor: theme.palette.color,
+    color: theme.palette.textColor,
+  },
+  colorPrimary: {
+    backgroundColor: theme.palette.primary[500],
+    color: theme.palette.getContrastText(theme.palette.primary[500]),
+  },
+  colorAccent: {
+    backgroundColor: theme.palette.accent.A200,
+    color: theme.palette.getContrastText(theme.palette.accent.A200),
+  },
+}));
 
-  if (primary) {
-    badgeBackgroundColor = badge.primaryColor;
-    badgeTextColor = badge.primaryTextColor;
-  } else if (secondary) {
-    badgeBackgroundColor = badge.secondaryColor;
-    badgeTextColor = badge.secondaryTextColor;
-  } else {
-    badgeBackgroundColor = badge.color;
-    badgeTextColor = badge.textColor;
-  }
+function Badge(props) {
+  const { badgeContent, classes, className: classNameProp, color, children, ...other } = props;
+  const className = classNames(classes.root, classNameProp);
+  const badgeClassName = classNames(classes.badge, {
+    [classes[`color${capitalizeFirstLetter(color)}`]]: color !== 'default',
+  });
 
-  const radius = 12;
-  const radius2x = Math.floor(2 * radius);
-
-  return {
-    root: {
-      position: 'relative',
-      display: 'inline-block',
-      padding: `${radius2x}px ${radius2x}px ${radius}px ${radius}px`,
-    },
-    badge: {
-      display: 'flex',
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      alignContent: 'center',
-      alignItems: 'center',
-      position: 'absolute',
-      top: 0,
-      right: 0,
-      fontWeight: badge.fontWeight,
-      fontSize: radius,
-      width: radius2x,
-      height: radius2x,
-      borderRadius: '50%',
-      backgroundColor: badgeBackgroundColor,
-      color: badgeTextColor,
-    },
-  };
+  return (
+    <div className={className} {...other}>
+      {children}
+      <span className={badgeClassName}>
+        {badgeContent}
+      </span>
+    </div>
+  );
 }
 
-class Badge extends Component {
-  static propTypes = {
-    /**
-     * This is the content rendered within the badge.
-     */
-    badgeContent: PropTypes.node.isRequired,
-    /**
-     * Override the inline-styles of the badge element.
-     */
-    badgeStyle: PropTypes.object,
-    /**
-     * The badge will be added relativelty to this node.
-     */
-    children: PropTypes.node,
-    /**
-     * The css class name of the root element.
-     */
-    className: PropTypes.string,
-    /**
-     * If true, the badge will use the primary badge colors.
-     */
-    primary: PropTypes.bool,
-    /**
-     * If true, the badge will use the secondary badge colors.
-     */
-    secondary: PropTypes.bool,
-    /**
-     * Override the inline-styles of the root element.
-     */
-    style: PropTypes.object,
-  };
+Badge.propTypes = {
+  /**
+   * The content rendered within the badge.
+   */
+  badgeContent: PropTypes.node.isRequired,
+  /**
+   * The badge will be added relative to this node.
+   */
+  children: PropTypes.node.isRequired,
+  /**
+   * Useful to extend the style applied to components.
+   */
+  classes: PropTypes.object.isRequired,
+  /**
+   * @ignore
+   */
+  className: PropTypes.string,
+  /**
+   * The color of the component. It's using the theme palette when that makes sense.
+   */
+  color: PropTypes.oneOf(['default', 'primary', 'accent']),
+};
 
-  static defaultProps = {
-    primary: false,
-    secondary: false,
-  };
+Badge.defaultProps = {
+  color: 'default',
+};
 
-  static contextTypes = {
-    muiTheme: PropTypes.object.isRequired,
-  };
-
-  render() {
-    const {
-      badgeContent,
-      badgeStyle,
-      children,
-      primary, // eslint-disable-line no-unused-vars
-      secondary, // eslint-disable-line no-unused-vars
-      style,
-      ...other
-    } = this.props;
-
-    const {prepareStyles} = this.context.muiTheme;
-    const styles = getStyles(this.props, this.context);
-
-    return (
-      <div {...other} style={prepareStyles(Object.assign({}, styles.root, style))}>
-        {children}
-        <span style={prepareStyles(Object.assign({}, styles.badge, badgeStyle))}>
-          {badgeContent}
-        </span>
-      </div>
-    );
-  }
-}
-
-export default Badge;
+export default withStyles(styleSheet)(Badge);

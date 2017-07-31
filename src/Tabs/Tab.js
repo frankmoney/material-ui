@@ -1,150 +1,272 @@
-import React, {Component} from 'react';
+// @flow weak
+
+import React, { Component, isValidElement } from 'react';
 import PropTypes from 'prop-types';
-import EnhancedButton from '../internal/EnhancedButton';
+import classNames from 'classnames';
+import createStyleSheet from '../styles/createStyleSheet';
+import withStyles from '../styles/withStyles';
+import ButtonBase from '../internal/ButtonBase';
+import { capitalizeFirstLetter } from '../utils/helpers';
+import Icon from '../Icon';
 
-function getStyles(props, context) {
-  const {tabs} = context.muiTheme;
-
-  return {
-    root: {
-      color: props.selected ? tabs.selectedTextColor : tabs.textColor,
-      fontWeight: 500,
-      fontSize: 14,
-      width: props.width,
-      textTransform: 'uppercase',
-      padding: 0,
+export const styleSheet = createStyleSheet('MuiTab', theme => ({
+  root: {
+    ...theme.typography.button,
+    maxWidth: 264,
+    minWidth: 72,
+    background: 'none',
+    padding: 0,
+    height: 48,
+    flex: 'none',
+    overflow: 'hidden',
+    [theme.breakpoints.up('md')]: {
+      minWidth: 160,
     },
-    button: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: (props.label && props.icon) ? 72 : 48,
+  },
+  rootLabelIcon: {
+    height: 72,
+  },
+  rootAccent: {
+    color: theme.palette.text.secondary,
+  },
+  rootAccentSelected: {
+    color: theme.palette.accent.A200,
+  },
+  rootAccentDisabled: {
+    color: theme.palette.text.disabled,
+  },
+  rootPrimary: {
+    color: theme.palette.text.secondary,
+  },
+  rootPrimarySelected: {
+    color: theme.palette.primary[500],
+  },
+  rootPrimaryDisabled: {
+    color: theme.palette.text.disabled,
+  },
+  rootInherit: {
+    color: 'inherit',
+    opacity: 0.7,
+  },
+  rootInheritSelected: {
+    opacity: 1,
+  },
+  rootInheritDisabled: {
+    opacity: 0.4,
+  },
+  fullWidth: {
+    flex: '1 0 0',
+  },
+  labelContainer: {
+    paddingTop: 6,
+    paddingBottom: 6,
+    paddingLeft: 12,
+    paddingRight: 12,
+    [theme.breakpoints.up('md')]: {
+      paddingLeft: theme.spacing.unit * 3,
+      paddingRight: theme.spacing.unit * 3,
     },
-  };
-}
+  },
+  label: {
+    fontSize: theme.typography.fontSize,
+    whiteSpace: 'normal',
+    [theme.breakpoints.up('md')]: {
+      fontSize: theme.typography.fontSize - 1,
+    },
+  },
+  labelWrapped: {
+    [theme.breakpoints.down('md')]: {
+      fontSize: theme.typography.fontSize - 2,
+    },
+  },
+}));
 
 class Tab extends Component {
-  static muiName = 'Tab';
-
-  static propTypes = {
-    /**
-     * Override the inline-styles of the button element.
-     */
-    buttonStyle: PropTypes.object,
-    /**
-     * The css class name of the root element.
-     */
-    className: PropTypes.string,
-    /**
-     * Sets the icon of the tab, you can pass `FontIcon` or `SvgIcon` elements.
-     */
-    icon: PropTypes.node,
-    /**
-     * @ignore
-     */
-    index: PropTypes.any,
-    /**
-     * Sets the text value of the tab item to the string specified.
-     */
-    label: PropTypes.node,
-    /**
-     * Fired when the active tab changes by touch or tap.
-     * Use this event to specify any functionality when an active tab changes.
-     * For example - we are using this to route to home when the third tab becomes active.
-     * This function will always recieve the active tab as it\'s first argument.
-     */
-    onActive: PropTypes.func,
-    /**
-     * @ignore
-     * This property is overriden by the Tabs component.
-     */
-    onTouchTap: PropTypes.func,
-    /**
-     * @ignore
-     * Defines if the current tab is selected or not.
-     * The Tabs component is responsible for setting this property.
-     */
-    selected: PropTypes.bool,
-    /**
-     * Override the inline-styles of the root element.
-     */
-    style: PropTypes.object,
-    /**
-     * If value prop passed to Tabs component, this value prop is also required.
-     * It assigns a value to the tab so that it can be selected by the Tabs.
-     */
-    value: PropTypes.any,
-    /**
-     * @ignore
-     * This property is overriden by the Tabs component.
-     */
-    width: PropTypes.string,
+  static defaultProps = {
+    disabled: false,
   };
 
-  static contextTypes = {
-    muiTheme: PropTypes.object.isRequired,
+  state = {
+    wrappedText: false,
   };
 
-  handleTouchTap = (event) => {
-    if (this.props.onTouchTap) {
-      this.props.onTouchTap(this.props.value, event, this);
+  componentDidMount() {
+    this.checkTextWrap();
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.wrappedText === prevState.wrappedText) {
+      /**
+       * At certain text and tab lengths, a larger font size may wrap to two lines while the smaller
+       * font size still only requires one line.  This check will prevent an infinite render loop
+       * fron occurring in that scenario.
+       */
+      this.checkTextWrap();
+    }
+  }
+
+  handleChange = event => {
+    const { onChange, index, onClick } = this.props;
+
+    onChange(event, index);
+
+    if (onClick) {
+      onClick(event);
+    }
+  };
+
+  label = undefined;
+
+  checkTextWrap = () => {
+    if (this.label) {
+      const wrappedText = this.label.getClientRects().length > 1;
+      if (this.state.wrappedText !== wrappedText) {
+        this.setState({ wrappedText });
+      }
     }
   };
 
   render() {
     const {
-      icon,
-      index, // eslint-disable-line no-unused-vars
-      onActive, // eslint-disable-line no-unused-vars
-      onTouchTap, // eslint-disable-line no-unused-vars
-      selected, // eslint-disable-line no-unused-vars
-      label,
-      buttonStyle,
-      style,
-      value, // eslint-disable-line no-unused-vars
-      width, // eslint-disable-line no-unused-vars
+      classes,
+      className: classNameProp,
+      fullWidth,
+      icon: iconProp,
+      index,
+      label: labelProp,
+      onChange,
+      selected,
+      style: styleProp,
+      textColor,
+      disabled,
       ...other
     } = this.props;
 
-    const styles = getStyles(this.props, this.context);
+    let icon;
 
-    let iconElement;
-    if (icon && React.isValidElement(icon)) {
-      const iconProps = {
-        style: {
-          fontSize: 24,
-          color: styles.root.color,
-          marginBottom: label ? 5 : 0,
-        },
-      };
-      // If it's svg icon set color via props
-      if (icon.type.muiName !== 'FontIcon') {
-        iconProps.color = styles.root.color;
-      }
-      iconElement = React.cloneElement(icon, iconProps);
+    if (iconProp !== undefined) {
+      icon = isValidElement(iconProp)
+        ? iconProp
+        : <Icon>
+            {iconProp}
+          </Icon>;
     }
 
-    const rippleOpacity = 0.3;
-    const rippleColor = this.context.muiTheme.tabs.selectedTextColor;
+    let label;
+
+    if (labelProp !== undefined) {
+      label = (
+        <div className={classes.labelContainer}>
+          <span
+            className={classNames(classes.label, {
+              [classes.labelWrapped]: this.state.wrappedText,
+            })}
+            ref={node => {
+              this.label = node;
+            }}
+          >
+            {labelProp}
+          </span>
+        </div>
+      );
+    }
+
+    const className = classNames(
+      classes.root,
+      {
+        [classes[`root${capitalizeFirstLetter(textColor)}`]]: true,
+        [classes[`root${capitalizeFirstLetter(textColor)}Disabled`]]: disabled,
+        [classes[`root${capitalizeFirstLetter(textColor)}Selected`]]: selected,
+        [classes.rootLabelIcon]: icon && label,
+        [classes.fullWidth]: fullWidth,
+      },
+      classNameProp,
+    );
+
+    let style = {};
+
+    if (textColor !== 'accent' && textColor !== 'inherit') {
+      style.color = textColor;
+    }
+
+    style =
+      Object.keys(style).length > 0
+        ? {
+            ...style,
+            ...styleProp,
+          }
+        : styleProp;
 
     return (
-      <EnhancedButton
+      <ButtonBase
+        focusRipple
+        className={className}
+        style={style}
+        role="tab"
+        aria-selected={selected}
+        disabled={disabled}
         {...other}
-        style={Object.assign(styles.root, style)}
-        focusRippleColor={rippleColor}
-        touchRippleColor={rippleColor}
-        focusRippleOpacity={rippleOpacity}
-        touchRippleOpacity={rippleOpacity}
-        onTouchTap={this.handleTouchTap}
+        onClick={this.handleChange}
       >
-        <div style={Object.assign(styles.button, buttonStyle)} >
-          {iconElement}
-          {label}
-        </div>
-      </EnhancedButton>
+        {icon}
+        {label}
+      </ButtonBase>
     );
   }
 }
 
-export default Tab;
+Tab.propTypes = {
+  /**
+   * Useful to extend the style applied to components.
+   */
+  classes: PropTypes.object.isRequired,
+  /**
+   * @ignore
+   */
+  className: PropTypes.string,
+  /**
+   * If `true`, the tab will be disabled.
+   */
+  disabled: PropTypes.bool,
+  /**
+   * @ignore
+   */
+  fullWidth: PropTypes.bool,
+  /**
+   * The icon element. If a string is provided, it will be used as a font ligature.
+   */
+  icon: PropTypes.node,
+  /**
+   * @ignore
+   */
+  index: PropTypes.number,
+  /**
+   * The label element.
+   */
+  label: PropTypes.node,
+  /**
+   * @ignore
+   */
+  onChange: PropTypes.func,
+  /**
+   * @ignore
+   */
+  onClick: PropTypes.func,
+  /**
+   * @ignore
+   */
+  selected: PropTypes.bool,
+  /**
+   * @ignore
+   */
+  style: PropTypes.object,
+  /**
+   * @ignore
+   */
+  textColor: PropTypes.oneOfType([
+    PropTypes.oneOf(['accent', 'primary', 'inherit']),
+    PropTypes.string,
+  ]),
+};
+
+export default withStyles(styleSheet)(Tab);

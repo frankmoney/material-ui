@@ -1,45 +1,42 @@
-/* eslint-env mocha */
+// @flow
+
 import React from 'react';
-import {shallow} from 'enzyme';
-import {assert} from 'chai';
-import Divider from './Divider';
-import getMuiTheme from '../styles/getMuiTheme';
+import { assert } from 'chai';
+import { createShallow, getClasses } from '../test-utils';
+import Divider, { styleSheet } from './Divider';
 
 describe('<Divider />', () => {
-  const muiTheme = getMuiTheme();
-  const shallowWithContext = (node) => shallow(node, {context: {muiTheme}});
+  let shallow;
+  let classes;
 
-  it('renders className', () => {
-    const wrapper = shallowWithContext(
-      <Divider
-        className="test-class-name"
-      />
-    );
-
-    assert.ok(wrapper.is('.test-class-name'), 'should contain the className');
+  before(() => {
+    shallow = createShallow({ dive: true });
+    classes = getClasses(styleSheet);
   });
 
-  it('renders inset', () => {
-    const wrapper = shallowWithContext(
-      <Divider
-        inset={true}
-      />
-    );
-    const cheerioDivider = wrapper.render().children();
-
-    assert.strictEqual(cheerioDivider.css('margin-left'), '72px');
+  it('should render a hr', () => {
+    const wrapper = shallow(<Divider />);
+    assert.strictEqual(wrapper.name(), 'hr');
   });
 
-  it('overwrite styles', () => {
-    const style = {
-      backgroundColor: 'red',
-    };
-    const wrapper = shallowWithContext(
-      <Divider
-        style={style}
-      />
-    );
+  it('should render with the root and default class', () => {
+    const wrapper = shallow(<Divider />);
+    assert.strictEqual(wrapper.hasClass(classes.root), true);
+    assert.strictEqual(wrapper.hasClass(classes.default), true, 'should have the default class');
+  });
 
-    assert.strictEqual(wrapper.prop('style').backgroundColor, 'red', 'should have red backgroundColor');
+  it('should set the absolute class', () => {
+    const wrapper = shallow(<Divider absolute />);
+    assert.strictEqual(wrapper.hasClass(classes.absolute), true, 'should be absolute');
+  });
+
+  it('should set the inset class', () => {
+    const wrapper = shallow(<Divider inset />);
+    assert.strictEqual(wrapper.hasClass(classes.inset), true, 'should have inset cass');
+  });
+
+  it('should set the light class', () => {
+    const wrapper = shallow(<Divider light />);
+    assert.strictEqual(wrapper.hasClass(classes.light), true, 'should have light class');
   });
 });

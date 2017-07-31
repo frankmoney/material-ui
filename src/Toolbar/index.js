@@ -1,6 +1,3 @@
-export Toolbar from './Toolbar';
-export ToolbarGroup from './ToolbarGroup';
-export ToolbarSeparator from './ToolbarSeparator';
-export ToolbarTitle from './ToolbarTitle';
+// @flow
 
-export default from './Toolbar';
+export { default } from './Toolbar';

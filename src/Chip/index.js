@@ -1,1 +1,3 @@
-export default from './Chip';
+// @flow
+
+export { default } from './Chip';

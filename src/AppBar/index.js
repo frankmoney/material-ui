@@ -1,1 +1,3 @@
-export default from './AppBar';
+// @flow
+
+export { default } from './AppBar';
