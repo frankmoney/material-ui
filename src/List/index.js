@@ -1,5 +1,9 @@
-export List from './List';
-export ListItem from './ListItem';
-export makeSelectable from './makeSelectable';
+// @flow
 
-export default from './List';
+export { default } from './List';
+export { default as ListItem } from './ListItem';
+export { default as ListItemAvatar } from './ListItemAvatar';
+export { default as ListItemText } from './ListItemText';
+export { default as ListItemIcon } from './ListItemIcon';
+export { default as ListItemSecondaryAction } from './ListItemSecondaryAction';
+export { default as ListSubheader } from './ListSubheader';

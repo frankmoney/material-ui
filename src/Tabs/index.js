@@ -1,4 +1,3 @@
-export Tab from './Tab';
-export Tabs from './Tabs';
-
-export default from './Tabs';
+// @flow
+export { default } from './Tabs';
+export { default as Tab } from './Tab';

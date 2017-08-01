@@ -1,477 +1,224 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
-import ReactDOM from 'react-dom';
-import EventListener from 'react-event-listener';
-import keycode from 'keycode';
-import transitions from '../styles/transitions';
-import Overlay from '../internal/Overlay';
-import RenderToLayer from '../internal/RenderToLayer';
+// @flow
+
+import React, { createElement, cloneElement } from 'react';
+import type { Element } from 'react';
+import classNames from 'classnames';
+import createStyleSheet from '../styles/createStyleSheet';
+import withStyles from '../styles/withStyles';
+import { capitalizeFirstLetter } from '../utils/helpers';
+import Modal from '../internal/Modal';
+import Fade from '../transitions/Fade';
+import { duration } from '../styles/transitions';
 import Paper from '../Paper';
+import type { TransitionCallback } from '../internal/Transition';
 
-import ReactTransitionGroup from 'react-addons-transition-group';
+export const styleSheet = createStyleSheet('MuiDialog', theme => ({
+  root: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paper: {
+    display: 'flex',
+    margin: theme.spacing.unit * 4,
+    flexDirection: 'column',
+    flex: '0 1 auto',
+    position: 'relative',
+    maxHeight: '90vh',
+    '&:focus': {
+      outline: 'none',
+    },
+  },
+  paperWidthXs: {
+    maxWidth: theme.breakpoints.getWidth('xs'),
+  },
+  paperWidthSm: {
+    maxWidth: theme.breakpoints.getWidth('sm'),
+  },
+  paperWidthMd: {
+    maxWidth: theme.breakpoints.getWidth('md'),
+  },
+  fullScreen: {
+    margin: 0,
+    width: '100%',
+    maxWidth: '100%',
+    height: '100%',
+    maxHeight: '100%',
+    borderRadius: 0,
+  },
+}));
 
-class TransitionItem extends Component {
-  static propTypes = {
-    children: PropTypes.node,
-    style: PropTypes.object,
-  };
+type Props = {
+  /**
+   * Dialog children, usually the included sub-components.
+   */
+  children?: Element<*>,
+  /**
+   * Useful to extend the style applied to components.
+   */
+  classes: Object,
+  /**
+   * @ignore
+   */
+  className?: string,
+  /**
+   * If `true`, it will be full-screen
+   */
+  fullScreen?: boolean,
+  /**
+   * If `true`, clicking the backdrop will not fire the `onRequestClose` callback.
+   */
+  ignoreBackdropClick?: boolean,
+  /**
+   * If `true`, hitting escape will not fire the `onRequestClose` callback.
+   */
+  ignoreEscapeKeyUp?: boolean,
+  /**
+   * Duration of the animation when the element is entering.
+   */
+  enterTransitionDuration?: number, // eslint-disable-line react/sort-prop-types
+  /**
+   * Duration of the animation when the element is leaving.
+   */
+  leaveTransitionDuration?: number,
+  /**
+   * Determine the max width of the dialog.
+   * The dialog width grows with the size of the screen, this property is useful
+   * on the desktop where you might need some coherent different width size across your
+   * application.
+   */
+  maxWidth?: 'xs' | 'sm' | 'md',
+  /**
+   * Callback fired when the backdrop is clicked.
+   */
+  onBackdropClick?: Function,
+  /**
+   * Callback fired before the dialog enters.
+   */
+  onEnter?: TransitionCallback,
+  /**
+   * Callback fired when the dialog is entering.
+   */
+  onEntering?: TransitionCallback,
+  /**
+   * Callback fired when the dialog has entered.
+   */
+  onEntered?: TransitionCallback, // eslint-disable-line react/sort-prop-types
+  /**
+   * Callback fires when the escape key is released and the modal is in focus.
+   */
+  onEscapeKeyUp?: Function, // eslint-disable-line react/sort-prop-types
+  /**
+   * Callback fired before the dialog exits.
+   */
+  onExit?: TransitionCallback,
+  /**
+   * Callback fired when the dialog is exiting.
+   */
+  onExiting?: TransitionCallback,
+  /**
+   * Callback fired when the dialog has exited.
+   */
+  onExited?: TransitionCallback, // eslint-disable-line react/sort-prop-types
+  /**
+   * Callback fired when the component requests to be closed.
+   *
+   * @param {object} event The event source of the callback
+   */
+  onRequestClose?: Function,
+  /**
+   * If `true`, the Dialog is open.
+   */
+  open?: boolean,
+  /**
+   * Transition component.
+   */
+  transition?: Function | Element<*>,
+};
 
-  static contextTypes = {
-    muiTheme: PropTypes.object.isRequired,
-  };
-
-  state = {
-    style: {},
-  };
-
-  componentWillUnmount() {
-    clearTimeout(this.enterTimeout);
-    clearTimeout(this.leaveTimeout);
-  }
-
-  componentWillEnter(callback) {
-    this.componentWillAppear(callback);
-  }
-
-  componentWillAppear(callback) {
-    const spacing = this.context.muiTheme.baseTheme.spacing;
-
-    this.setState({
-      style: {
-        opacity: 1,
-        transform: `translate(0, ${spacing.desktopKeylineIncrement}px)`,
-      },
-    });
-
-    this.enterTimeout = setTimeout(callback, 450); // matches transition duration
-  }
-
-  componentWillLeave(callback) {
-    this.setState({
-      style: {
-        opacity: 0,
-        transform: 'translate(0, 0)',
-      },
-    });
-
-    this.leaveTimeout = setTimeout(callback, 450); // matches transition duration
-  }
-
-  render() {
-    const {
-      style,
-      children,
-      ...other
-    } = this.props;
-
-    const {prepareStyles} = this.context.muiTheme;
-
-    return (
-      <div {...other} style={prepareStyles(Object.assign({}, this.state.style, style))}>
-        {children}
-      </div>
-    );
-  }
-}
-
-function getStyles(props, context) {
+/**
+ * Dialogs are overlaid modal paper based components with a backdrop.
+ */
+function Dialog(props: Props) {
   const {
-    autoScrollBodyContent,
+    children,
+    classes,
+    className,
+    fullScreen,
+    ignoreBackdropClick,
+    ignoreEscapeKeyUp,
+    enterTransitionDuration,
+    leaveTransitionDuration,
+    maxWidth: maxWidthProp,
     open,
+    onBackdropClick,
+    onEscapeKeyUp,
+    onEnter,
+    onEntering,
+    onEntered,
+    onExit,
+    onExiting,
+    onExited,
+    onRequestClose,
+    transition,
+    ...other
   } = props;
 
-  const {
-    baseTheme: {
-      spacing,
-      palette,
-    },
-    dialog,
-    zIndex,
-  } = context.muiTheme;
+  // workaround: see #2 test case from https://github.com/facebook/flow/issues/1660#issuecomment-302468866
+  const maxWidth = maxWidthProp || Dialog.defaultProps.maxWidth;
+  const createTransitionFn = typeof transition === 'function' ? createElement : cloneElement;
 
-  const gutter = spacing.desktopGutter;
-  const borderScroll = `1px solid ${palette.borderColor}`;
-
-  return {
-    root: {
-      position: 'fixed',
-      boxSizing: 'border-box',
-      WebkitTapHighlightColor: 'rgba(0,0,0,0)', // Remove mobile color flashing (deprecated)
-      zIndex: zIndex.dialog,
-      top: 0,
-      left: open ? 0 : -10000,
-      width: '100%',
-      height: '100%',
-      transition: open ?
-        transitions.easeOut('0ms', 'left', '0ms') :
-        transitions.easeOut('0ms', 'left', '450ms'),
-    },
-    content: {
-      boxSizing: 'border-box',
-      WebkitTapHighlightColor: 'rgba(0,0,0,0)', // Remove mobile color flashing (deprecated)
-      transition: transitions.easeOut(),
-      position: 'relative',
-      width: '75%',
-      maxWidth: spacing.desktopKeylineIncrement * 12,
-      margin: '0 auto',
-      zIndex: zIndex.dialog,
-    },
-    actionsContainer: {
-      boxSizing: 'border-box',
-      WebkitTapHighlightColor: 'rgba(0,0,0,0)', // Remove mobile color flashing (deprecated)
-      padding: 8,
-      width: '100%',
-      textAlign: 'right',
-      marginTop: autoScrollBodyContent ? -1 : 0,
-      borderTop: autoScrollBodyContent ? borderScroll : 'none',
-    },
-    overlay: {
-      zIndex: zIndex.dialogOverlay,
-    },
-    title: {
-      margin: 0,
-      padding: `${gutter}px ${gutter}px 20px ${gutter}px`,
-      color: palette.textColor,
-      fontSize: dialog.titleFontSize,
-      lineHeight: '32px',
-      fontWeight: 400,
-      marginBottom: autoScrollBodyContent ? -1 : 0,
-      borderBottom: autoScrollBodyContent ? borderScroll : 'none',
-    },
-    body: {
-      fontSize: dialog.bodyFontSize,
-      color: dialog.bodyColor,
-      padding: `${props.title ? 0 : gutter}px ${gutter}px ${gutter}px`,
-      boxSizing: 'border-box',
-      overflowY: autoScrollBodyContent ? 'auto' : 'hidden',
-    },
-  };
-}
-
-class DialogInline extends Component {
-  static propTypes = {
-    actions: PropTypes.node,
-    actionsContainerClassName: PropTypes.string,
-    actionsContainerStyle: PropTypes.object,
-    autoDetectWindowHeight: PropTypes.bool,
-    autoScrollBodyContent: PropTypes.bool,
-    bodyClassName: PropTypes.string,
-    bodyStyle: PropTypes.object,
-    children: PropTypes.node,
-    className: PropTypes.string,
-    contentClassName: PropTypes.string,
-    contentStyle: PropTypes.object,
-    modal: PropTypes.bool,
-    onRequestClose: PropTypes.func,
-    open: PropTypes.bool.isRequired,
-    overlayClassName: PropTypes.string,
-    overlayStyle: PropTypes.object,
-    repositionOnUpdate: PropTypes.bool,
-    style: PropTypes.object,
-    title: PropTypes.node,
-    titleClassName: PropTypes.string,
-    titleStyle: PropTypes.object,
-  };
-
-  static contextTypes = {
-    muiTheme: PropTypes.object.isRequired,
-  };
-
-  componentDidMount() {
-    this.positionDialog();
-  }
-
-  componentDidUpdate() {
-    this.positionDialog();
-  }
-
-  positionDialog() {
-    const {
-      actions,
-      autoDetectWindowHeight,
-      autoScrollBodyContent,
-      bodyStyle,
-      open,
-      repositionOnUpdate,
-      title,
-    } = this.props;
-
-    if (!open) {
-      return;
-    }
-
-    const clientHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-    const container = ReactDOM.findDOMNode(this);
-    const dialogWindow = ReactDOM.findDOMNode(this.refs.dialogWindow);
-    const dialogContent = ReactDOM.findDOMNode(this.refs.dialogContent);
-    const minPaddingTop = 16;
-
-    // Reset the height in case the window was resized.
-    dialogWindow.style.height = '';
-    dialogContent.style.height = '';
-
-    const dialogWindowHeight = dialogWindow.offsetHeight;
-    let paddingTop = ((clientHeight - dialogWindowHeight) / 2) - 64;
-    if (paddingTop < minPaddingTop) paddingTop = minPaddingTop;
-
-    // Vertically center the dialog window, but make sure it doesn't
-    // transition to that position.
-    if (repositionOnUpdate || !container.style.paddingTop) {
-      container.style.paddingTop = `${paddingTop}px`;
-    }
-
-    // Force a height if the dialog is taller than clientHeight
-    if (autoDetectWindowHeight || autoScrollBodyContent) {
-      const styles = getStyles(this.props, this.context);
-      styles.body = Object.assign(styles.body, bodyStyle);
-      let maxDialogContentHeight = clientHeight - 2 * 64;
-
-      if (title) maxDialogContentHeight -= dialogContent.previousSibling.offsetHeight;
-
-      if (React.Children.count(actions)) {
-        maxDialogContentHeight -= dialogContent.nextSibling.offsetHeight;
-      }
-
-      dialogContent.style.maxHeight = `${maxDialogContentHeight}px`;
-    }
-  }
-
-  requestClose(buttonClicked) {
-    if (!buttonClicked && this.props.modal) {
-      return;
-    }
-
-    if (this.props.onRequestClose) {
-      this.props.onRequestClose(!!buttonClicked);
-    }
-  }
-
-  handleTouchTapOverlay = () => {
-    this.requestClose(false);
-  };
-
-  handleKeyUp = (event) => {
-    if (keycode(event) === 'esc') {
-      this.requestClose(false);
-    }
-  };
-
-  handleResize = () => {
-    this.positionDialog();
-  };
-
-  render() {
-    const {
-      actions,
-      actionsContainerClassName,
-      actionsContainerStyle,
-      bodyClassName,
-      bodyStyle,
-      children,
-      className,
-      contentClassName,
-      contentStyle,
-      overlayClassName,
-      overlayStyle,
-      open,
-      titleClassName,
-      titleStyle,
-      title,
-      style,
-    } = this.props;
-
-    const {prepareStyles} = this.context.muiTheme;
-    const styles = getStyles(this.props, this.context);
-
-    styles.root = Object.assign(styles.root, style);
-    styles.content = Object.assign(styles.content, contentStyle);
-    styles.body = Object.assign(styles.body, bodyStyle);
-    styles.actionsContainer = Object.assign(styles.actionsContainer, actionsContainerStyle);
-    styles.overlay = Object.assign(styles.overlay, overlayStyle);
-    styles.title = Object.assign(styles.title, titleStyle);
-
-    const actionsContainer = React.Children.count(actions) > 0 && (
-      <div className={actionsContainerClassName} style={prepareStyles(styles.actionsContainer)}>
-        {React.Children.toArray(actions)}
-      </div>
-    );
-
-    let titleElement = title;
-    if (React.isValidElement(title)) {
-      titleElement = React.cloneElement(title, {
-        className: title.props.className || titleClassName,
-        style: prepareStyles(Object.assign(styles.title, title.props.style)),
-      });
-    } else if (typeof title === 'string') {
-      titleElement = (
-        <h3 className={titleClassName} style={prepareStyles(styles.title)}>
-          {title}
-        </h3>
-      );
-    }
-
-    return (
-      <div className={className} style={prepareStyles(styles.root)}>
-        {open &&
-          <EventListener
-            target="window"
-            onKeyUp={this.handleKeyUp}
-            onResize={this.handleResize}
-          />
-        }
-        <ReactTransitionGroup
-          component="div"
-          ref="dialogWindow"
-          transitionAppear={true}
-          transitionAppearTimeout={450}
-          transitionEnter={true}
-          transitionEnterTimeout={450}
+  return (
+    <Modal
+      className={classNames(classes.root, className)}
+      backdropTransitionDuration={open ? enterTransitionDuration : leaveTransitionDuration}
+      ignoreBackdropClick={ignoreBackdropClick}
+      ignoreEscapeKeyUp={ignoreEscapeKeyUp}
+      onBackdropClick={onBackdropClick}
+      onEscapeKeyUp={onEscapeKeyUp}
+      onRequestClose={onRequestClose}
+      show={open}
+      {...other}
+    >
+      {createTransitionFn(
+        /* $FlowFixMe */
+        transition,
+        {
+          in: open,
+          transitionAppear: true,
+          enterTransitionDuration,
+          leaveTransitionDuration,
+          onEnter,
+          onEntering,
+          onEntered,
+          onExit,
+          onExiting,
+          onExited,
+        },
+        <Paper
+          data-mui-test="Dialog"
+          elevation={24}
+          className={classNames(
+            classes.paper,
+            classes[`paperWidth${capitalizeFirstLetter(maxWidth)}`],
+            { [classes.fullScreen]: fullScreen },
+          )}
         >
-          {open &&
-            <TransitionItem
-              className={contentClassName}
-              style={styles.content}
-            >
-              <Paper zDepth={4}>
-                {titleElement}
-                <div
-                  ref="dialogContent"
-                  className={bodyClassName}
-                  style={prepareStyles(styles.body)}
-                >
-                  {children}
-                </div>
-                {actionsContainer}
-              </Paper>
-            </TransitionItem>
-          }
-        </ReactTransitionGroup>
-        <Overlay
-          show={open}
-          className={overlayClassName}
-          style={styles.overlay}
-          onTouchTap={this.handleTouchTapOverlay}
-        />
-      </div>
-    );
-  }
+          {children}
+        </Paper>,
+      )}
+    </Modal>
+  );
 }
 
-class Dialog extends Component {
-  static propTypes = {
-    /**
-     * Action buttons to display below the Dialog content (`children`).
-     * This property accepts either a React element, or an array of React elements.
-     */
-    actions: PropTypes.node,
-    /**
-     * The `className` to add to the actions container's root element.
-     */
-    actionsContainerClassName: PropTypes.string,
-    /**
-     * Overrides the inline-styles of the actions container's root element.
-     */
-    actionsContainerStyle: PropTypes.object,
-    /**
-     * If set to true, the height of the `Dialog` will be auto detected. A max height
-     * will be enforced so that the content does not extend beyond the viewport.
-     */
-    autoDetectWindowHeight: PropTypes.bool,
-    /**
-     * If set to true, the body content of the `Dialog` will be scrollable.
-     */
-    autoScrollBodyContent: PropTypes.bool,
-    /**
-     * The `className` to add to the content's root element under the title.
-     */
-    bodyClassName: PropTypes.string,
-    /**
-     * Overrides the inline-styles of the content's root element under the title.
-     */
-    bodyStyle: PropTypes.object,
-    /**
-     * The contents of the `Dialog`.
-     */
-    children: PropTypes.node,
-    /**
-     * The css class name of the root element.
-     */
-    className: PropTypes.string,
-    /**
-     * The `className` to add to the content container.
-     */
-    contentClassName: PropTypes.string,
-    /**
-     * Overrides the inline-styles of the content container.
-     */
-    contentStyle: PropTypes.object,
-    /**
-     * Force the user to use one of the actions in the `Dialog`.
-     * Clicking outside the `Dialog` will not trigger the `onRequestClose`.
-     */
-    modal: PropTypes.bool,
-    /**
-     * Fired when the `Dialog` is requested to be closed by a click outside the `Dialog` or on the buttons.
-     *
-     * @param {bool} buttonClicked Determines whether a button click triggered this request.
-     */
-    onRequestClose: PropTypes.func,
-    /**
-     * Controls whether the Dialog is opened or not.
-     */
-    open: PropTypes.bool.isRequired,
-    /**
-     * The `className` to add to the `Overlay` component that is rendered behind the `Dialog`.
-     */
-    overlayClassName: PropTypes.string,
-    /**
-     * Overrides the inline-styles of the `Overlay` component that is rendered behind the `Dialog`.
-     */
-    overlayStyle: PropTypes.object,
-    /**
-     * Determines whether the `Dialog` should be repositioned when it's contents are updated.
-     */
-    repositionOnUpdate: PropTypes.bool,
-    /**
-     * Override the inline-styles of the root element.
-     */
-    style: PropTypes.object,
-    /**
-     * The title to display on the `Dialog`. Could be number, string, element or an array containing these types.
-     */
-    title: PropTypes.node,
-    /**
-     * The `className` to add to the title's root container element.
-     */
-    titleClassName: PropTypes.string,
-    /**
-     * Overrides the inline-styles of the title's root container element.
-     */
-    titleStyle: PropTypes.object,
-  };
+Dialog.defaultProps = {
+  fullScreen: false,
+  ignoreBackdropClick: false,
+  ignoreEscapeKeyUp: false,
+  enterTransitionDuration: duration.enteringScreen,
+  leaveTransitionDuration: duration.leavingScreen,
+  maxWidth: 'sm',
+  open: false,
+  transition: Fade,
+};
 
-  static contextTypes = {
-    muiTheme: PropTypes.object.isRequired,
-  };
-
-  static defaultProps = {
-    autoDetectWindowHeight: true,
-    autoScrollBodyContent: false,
-    modal: false,
-    repositionOnUpdate: true,
-  };
-
-  renderLayer = () => {
-    return (
-      <DialogInline {...this.props} />
-    );
-  };
-
-  render() {
-    return (
-      <RenderToLayer render={this.renderLayer} open={true} useLayerForClickAway={false} />
-    );
-  }
-}
-
-export default Dialog;
+export default withStyles(styleSheet)(Dialog);

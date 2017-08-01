@@ -1,164 +1,75 @@
-import React, {Component, isValidElement} from 'react';
-import PropTypes from 'prop-types';
-import Avatar from '../Avatar';
+// @flow
 
-function getStyles(props, context) {
-  const {card} = context.muiTheme;
+import React from 'react';
+import type { Element } from 'react';
+import classNames from 'classnames';
+import createStyleSheet from '../styles/createStyleSheet';
+import withStyles from '../styles/withStyles';
+import Typography from '../Typography';
+import CardContent from './CardContent';
 
-  return {
-    root: {
-      padding: 16,
-      fontWeight: card.fontWeight,
-      boxSizing: 'border-box',
-      position: 'relative',
-      whiteSpace: 'nowrap',
-    },
-    text: {
-      display: 'inline-block',
-      verticalAlign: 'top',
-      whiteSpace: 'normal',
-      paddingRight: '90px',
-    },
-    avatar: {
-      marginRight: 16,
-    },
-    title: {
-      color: props.titleColor || card.titleColor,
-      display: 'block',
-      fontSize: 15,
-    },
-    subtitle: {
-      color: props.subtitleColor || card.subtitleColor,
-      display: 'block',
-      fontSize: 14,
-    },
-  };
-}
+export const styleSheet = createStyleSheet('MuiCardHeader', theme => ({
+  root: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  avatar: {
+    flex: '0 0 auto',
+    marginRight: theme.spacing.unit * 2,
+  },
+  content: {
+    flex: '1 1 auto',
+  },
+}));
 
-class CardHeader extends Component {
-  static muiName = 'CardHeader';
+type Props = {
+  /**
+   * The Avatar  for the Card Header.
+   */
+  avatar?: Element<*>,
+  /**
+   * Useful to extend the style applied to components.
+   */
+  classes: Object,
+  /**
+   * @ignore
+   */
+  className?: string,
+  /**
+   * The content of the component.
+   */
+  subheader?: Element<*>,
+  /**
+   * The content of the Card Title.
+   */
+  title?: Element<*>,
+};
 
-  static propTypes = {
-    /**
-     * If true, a click on this card component expands the card.
-     */
-    actAsExpander: PropTypes.bool,
-    /**
-     * This is the [Avatar](/#/components/avatar) element to be displayed on the Card Header.
-     * If `avatar` is an `Avatar` or other element, it will be rendered.
-     * If `avatar` is a string, it will be used as the image `src` for an `Avatar`.
-     */
-    avatar: PropTypes.node,
-    /**
-     * Can be used to render elements inside the Card Header.
-     */
-    children: PropTypes.node,
-    /**
-     * Can be used to pass a closeIcon if you don't like the default expandable close Icon.
-     */
-    closeIcon: PropTypes.node,
-    /**
-     * If true, this card component is expandable.
-     */
-    expandable: PropTypes.bool,
-    /**
-     * Can be used to pass a openIcon if you don't like the default expandable open Icon.
-     */
-    openIcon: PropTypes.node,
-    /**
-     * If true, this card component will include a button to expand the card.
-     */
-    showExpandableButton: PropTypes.bool,
-    /**
-     * Override the inline-styles of the root element.
-     */
-    style: PropTypes.object,
-    /**
-     * Can be used to render a subtitle in Card Header.
-     */
-    subtitle: PropTypes.node,
-    /**
-     * Override the subtitle color.
-     */
-    subtitleColor: PropTypes.string,
-    /**
-     * Override the inline-styles of the subtitle.
-     */
-    subtitleStyle: PropTypes.object,
-    /**
-     * Override the inline-styles of the text.
-     */
-    textStyle: PropTypes.object,
-    /**
-     * Can be used to render a title in Card Header.
-     */
-    title: PropTypes.node,
-    /**
-     * Override the title color.
-     */
-    titleColor: PropTypes.string,
-    /**
-     * Override the inline-styles of the title.
-     */
-    titleStyle: PropTypes.object,
-  };
+function CardHeader(props: Props) {
+  const { avatar, classes, className: classNameProp, subheader, title, ...other } = props;
 
-  static defaultProps = {
-    avatar: null,
-  };
+  const className = classNames(classes.root, classNameProp);
 
-  static contextTypes = {
-    muiTheme: PropTypes.object.isRequired,
-  };
+  // Adjustments that depend on the presence of an avatar
+  const titleType = avatar ? 'body2' : 'headline';
+  const subheaderType = avatar ? 'body2' : 'body1';
 
-  render() {
-    const {
-      actAsExpander, // eslint-disable-line no-unused-vars
-      avatar: avatarProp,
-      children,
-      closeIcon, // eslint-disable-line no-unused-vars
-      expandable, // eslint-disable-line no-unused-vars
-      openIcon, // eslint-disable-line no-unused-vars
-      showExpandableButton, // eslint-disable-line no-unused-vars
-      style,
-      subtitle,
-      subtitleColor, // eslint-disable-line no-unused-vars
-      subtitleStyle,
-      textStyle,
-      title,
-      titleColor, // eslint-disable-line no-unused-vars
-      titleStyle,
-      ...other
-    } = this.props;
-
-    const {prepareStyles} = this.context.muiTheme;
-    const styles = getStyles(this.props, this.context);
-
-    let avatar = avatarProp;
-
-    if (isValidElement(avatarProp)) {
-      avatar = React.cloneElement(avatar, {
-        style: Object.assign(styles.avatar, avatar.props.style),
-      });
-    } else if (avatar !== null) {
-      avatar = <Avatar src={avatarProp} style={styles.avatar} />;
-    }
-
-    return (
-      <div {...other} style={prepareStyles(Object.assign(styles.root, style))}>
-        {avatar}
-        <div style={prepareStyles(Object.assign(styles.text, textStyle))}>
-          <span style={prepareStyles(Object.assign(styles.title, titleStyle))}>
-            {title}
-          </span>
-          <span style={prepareStyles(Object.assign(styles.subtitle, subtitleStyle))}>
-            {subtitle}
-          </span>
-        </div>
-        {children}
+  return (
+    <CardContent className={className} {...other}>
+      {avatar &&
+        <div className={classes.avatar}>
+          {avatar}
+        </div>}
+      <div className={classes.content}>
+        <Typography type={titleType} component="span">
+          {title}
+        </Typography>
+        <Typography type={subheaderType} component="span" color="secondary">
+          {subheader}
+        </Typography>
       </div>
-    );
-  }
+    </CardContent>
+  );
 }
 
-export default CardHeader;
+export default withStyles(styleSheet)(CardHeader);

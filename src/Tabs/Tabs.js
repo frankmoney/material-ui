@@ -1,248 +1,368 @@
-import React, {Component, createElement, cloneElement, Children, isValidElement} from 'react';
-import PropTypes from 'prop-types';
+// @flow weak
+
+import React, { Component, Children, cloneElement } from 'react';
 import warning from 'warning';
-import TabTemplate from './TabTemplate';
-import InkBar from './InkBar';
+import PropTypes from 'prop-types';
+import compose from 'recompose/compose';
+import classNames from 'classnames';
+import EventListener from 'react-event-listener';
+import debounce from 'lodash/debounce';
+import ScrollbarSize from 'react-scrollbar-size';
+import scroll from 'scroll';
+import createStyleSheet from '../styles/createStyleSheet';
+import withStyles from '../styles/withStyles';
+import withWidth, { isWidthUp } from '../utils/withWidth';
+import TabIndicator from './TabIndicator';
+import TabScrollButton from './TabScrollButton';
 
-function getStyles(props, context) {
-  const {tabs} = context.muiTheme;
+export const styleSheet = createStyleSheet('MuiTabs', {
+  root: {
+    overflow: 'hidden',
+  },
+  flexContainer: {
+    display: 'flex',
+  },
+  scrollingContainer: {
+    display: 'inline-block',
+    flex: '1 1 auto',
+    whiteSpace: 'nowrap',
+  },
+  fixed: {
+    overflowX: 'hidden',
+    width: '100%',
+  },
+  scrollable: {
+    overflowX: 'scroll',
+  },
+  centered: {
+    justifyContent: 'center',
+  },
+});
 
-  return {
-    tabItemContainer: {
-      width: '100%',
-      backgroundColor: tabs.backgroundColor,
-      whiteSpace: 'nowrap',
-      display: 'flex',
-    },
-  };
-}
-
+/**
+ * Notice that this Component is incompatible with server side rendering.
+ */
 class Tabs extends Component {
-  static propTypes = {
-    /**
-     * Should be used to pass `Tab` components.
-     */
-    children: PropTypes.node,
-    /**
-     * The css class name of the root element.
-     */
-    className: PropTypes.string,
-    /**
-     * The css class name of the content's container.
-     */
-    contentContainerClassName: PropTypes.string,
-    /**
-     * Override the inline-styles of the content's container.
-     */
-    contentContainerStyle: PropTypes.object,
-    /**
-     * Specify initial visible tab index.
-     * If `initialSelectedIndex` is set but larger than the total amount of specified tabs,
-     * `initialSelectedIndex` will revert back to default.
-     * If `initialSelectedIndex` is set to any negative value, no tab will be selected intially.
-     */
-    initialSelectedIndex: PropTypes.number,
-    /**
-     * Override the inline-styles of the InkBar.
-     */
-    inkBarStyle: PropTypes.object,
-    /**
-     * Called when the selected value change.
-     */
-    onChange: PropTypes.func,
-    /**
-     * Override the inline-styles of the root element.
-     */
-    style: PropTypes.object,
-    /**
-     * Override the inline-styles of the tab-labels container.
-     */
-    tabItemContainerStyle: PropTypes.object,
-    /**
-     * Override the default tab template used to wrap the content of each tab element.
-     */
-    tabTemplate: PropTypes.func,
-    /**
-     * Override the inline-styles of the tab template.
-     */
-    tabTemplateStyle: PropTypes.object,
-    /**
-     * Makes Tabs controllable and selects the tab whose value prop matches this prop.
-     */
-    value: PropTypes.any,
-  };
-
   static defaultProps = {
-    initialSelectedIndex: 0,
-    onChange: () => {},
+    centered: false,
+    fullWidth: false,
+    indicatorColor: 'accent',
+    scrollable: false,
+    scrollButtons: 'auto',
+    textColor: 'inherit',
   };
 
-  static contextTypes = {
-    muiTheme: PropTypes.object.isRequired,
+  state = {
+    indicatorStyle: {},
+    scrollerStyle: {
+      marginBottom: 0,
+    },
+    showLeftScroll: false,
+    showRightScroll: false,
   };
 
-  state = {selectedIndex: 0};
+  componentDidMount() {
+    this.updateIndicatorState(this.props);
+    this.updateScrollButtonState();
+  }
 
-  componentWillMount() {
-    const valueLink = this.getValueLink(this.props);
-    const initialIndex = this.props.initialSelectedIndex;
+  componentWillReceiveProps(nextProps) {
+    if (this.props.index !== nextProps.index) {
+      this.updateIndicatorState(nextProps);
+    }
+  }
 
+  componentDidUpdate(prevProps, prevState) {
+    this.updateScrollButtonState();
+    if (
+      this.props.width !== prevProps.width ||
+      this.state.indicatorStyle !== prevState.indicatorStyle
+    ) {
+      this.scrollSelectedIntoView();
+    }
+  }
+
+  componentWillUnmount() {
+    this.handleResize.cancel();
+    this.handleTabsScroll.cancel();
+  }
+
+  tabs = undefined;
+
+  handleResize = debounce(() => {
+    this.updateIndicatorState(this.props);
+    this.updateScrollButtonState();
+  }, 166);
+
+  handleLeftScrollClick = () => {
+    this.moveTabsScroll(-this.tabs.clientWidth);
+  };
+
+  handleRightScrollClick = () => {
+    this.moveTabsScroll(this.tabs.clientWidth);
+  };
+
+  handleScrollbarSizeChange = ({ scrollbarHeight }) => {
     this.setState({
-      selectedIndex: valueLink.value !== undefined ?
-        this.getSelectedIndex(this.props) :
-        initialIndex < this.getTabCount() ?
-        initialIndex :
-        0,
+      scrollerStyle: {
+        marginBottom: -scrollbarHeight,
+      },
     });
-  }
+  };
 
-  componentWillReceiveProps(newProps, nextContext) {
-    const valueLink = this.getValueLink(newProps);
-    const newState = {
-      muiTheme: nextContext.muiTheme || this.context.muiTheme,
-    };
+  handleTabsScroll = debounce(() => {
+    this.updateScrollButtonState();
+  }, 166);
 
-    if (valueLink.value !== undefined) {
-      newState.selectedIndex = this.getSelectedIndex(newProps);
+  getConditionalElements = () => {
+    const { buttonClassName, scrollable, scrollButtons, width } = this.props;
+    const conditionalElements = {};
+    conditionalElements.scrollbarSizeListener = scrollable
+      ? <ScrollbarSize
+          onLoad={this.handleScrollbarSizeChange}
+          onChange={this.handleScrollbarSizeChange}
+        />
+      : null;
+
+    const showScrollButtons =
+      scrollable &&
+      ((isWidthUp('md', width) && scrollButtons === 'auto') || scrollButtons === 'on');
+
+    conditionalElements.scrollButtonLeft = showScrollButtons
+      ? <TabScrollButton
+          direction="left"
+          onClick={this.handleLeftScrollClick}
+          visible={this.state.showLeftScroll}
+          className={buttonClassName}
+        />
+      : null;
+
+    conditionalElements.scrollButtonRight = showScrollButtons
+      ? <TabScrollButton
+          className={buttonClassName}
+          direction="right"
+          onClick={this.handleRightScrollClick}
+          visible={this.state.showRightScroll}
+        />
+      : null;
+
+    return conditionalElements;
+  };
+
+  getTabsMeta = index => {
+    let tabsMeta;
+    if (this.tabs) {
+      tabsMeta = this.tabs.getBoundingClientRect();
+      tabsMeta.scrollLeft = this.tabs.scrollLeft;
     }
 
-    this.setState(newState);
-  }
+    let tabMeta;
+    if (this.tabs && index !== false) {
+      const tab = this.tabs.children[0].children[index];
+      warning(tab, `Material-UI: the index provided \`${index}\` is invalid`);
+      tabMeta = tab ? this.tabs.children[0].children[index].getBoundingClientRect() : null;
+    }
+    return { tabsMeta, tabMeta };
+  };
 
-  getTabs(props = this.props) {
-    const tabs = [];
+  moveTabsScroll = delta => {
+    const nextScrollLeft = this.tabs.scrollLeft + delta;
+    scroll.left(this.tabs, nextScrollLeft);
+  };
 
-    Children.forEach(props.children, (tab) => {
-      if (isValidElement(tab)) {
-        tabs.push(tab);
-      }
-    });
-
-    return tabs;
-  }
-
-  getTabCount() {
-    return this.getTabs().length;
-  }
-
-  // Do not use outside of this component, it will be removed once valueLink is deprecated
-  getValueLink(props) {
-    return props.valueLink || {
-      value: props.value,
-      requestChange: props.onChange,
+  updateIndicatorState(props) {
+    const { tabsMeta, tabMeta } = this.getTabsMeta(props.index);
+    const indicatorStyle = {
+      left: tabMeta && tabsMeta ? tabMeta.left + (tabsMeta.scrollLeft - tabsMeta.left) : 0,
+      // May be wrong until the font is loaded.
+      width: tabMeta ? tabMeta.width : 0,
     };
+
+    if (
+      indicatorStyle.left !== this.state.indicatorStyle.left ||
+      indicatorStyle.width !== this.state.indicatorStyle.width
+    ) {
+      this.setState({ indicatorStyle });
+    }
   }
 
-  getSelectedIndex(props) {
-    const valueLink = this.getValueLink(props);
-    let selectedIndex = -1;
+  scrollSelectedIntoView = () => {
+    const { tabsMeta, tabMeta } = this.getTabsMeta(this.props.index);
 
-    this.getTabs(props).forEach((tab, index) => {
-      if (valueLink.value === tab.props.value) {
-        selectedIndex = index;
-      }
-    });
-
-    return selectedIndex;
-  }
-
-  handleTabTouchTap = (value, event, tab) => {
-    const valueLink = this.getValueLink(this.props);
-    const index = tab.props.index;
-
-    if ((valueLink.value && valueLink.value !== value) ||
-      this.state.selectedIndex !== index) {
-      valueLink.requestChange(value, event, tab);
+    if (!tabMeta || !tabsMeta) {
+      return;
     }
 
-    this.setState({selectedIndex: index});
-
-    if (tab.props.onActive) {
-      tab.props.onActive(tab);
+    if (tabMeta.left < tabsMeta.left) {
+      // left side of button is out of view
+      const nextScrollLeft = tabsMeta.scrollLeft + (tabMeta.left - tabsMeta.left);
+      scroll.left(this.tabs, nextScrollLeft);
+    } else if (tabMeta.right > tabsMeta.right) {
+      // right side of button is out of view
+      const nextScrollLeft = tabsMeta.scrollLeft + (tabMeta.right - tabsMeta.right);
+      scroll.left(this.tabs, nextScrollLeft);
     }
   };
 
-  getSelected(tab, index) {
-    const valueLink = this.getValueLink(this.props);
-    return valueLink.value ? valueLink.value === tab.props.value :
-      this.state.selectedIndex === index;
-  }
+  updateScrollButtonState = () => {
+    const { scrollable, scrollButtons } = this.props;
+
+    if (scrollable && scrollButtons !== 'off') {
+      const { scrollLeft, scrollWidth, clientWidth } = this.tabs;
+      const showLeftScroll = scrollLeft > 0;
+      const showRightScroll = scrollWidth > clientWidth + scrollLeft;
+
+      if (
+        showLeftScroll !== this.state.showLeftScroll ||
+        showRightScroll !== this.state.showRightScroll
+      ) {
+        this.setState({ showLeftScroll, showRightScroll });
+      }
+    }
+  };
 
   render() {
     const {
-      contentContainerClassName,
-      contentContainerStyle,
-      initialSelectedIndex, // eslint-disable-line no-unused-vars
-      inkBarStyle,
-      onChange, // eslint-disable-line no-unused-vars
-      style,
-      tabItemContainerStyle,
-      tabTemplate,
-      tabTemplateStyle,
+      buttonClassName,
+      centered,
+      classes,
+      children: childrenProp,
+      className: classNameProp,
+      fullWidth,
+      index,
+      indicatorClassName,
+      indicatorColor,
+      onChange,
+      scrollable,
+      scrollButtons,
+      textColor,
+      width,
       ...other
     } = this.props;
 
-    const {prepareStyles} = this.context.muiTheme;
-    const styles = getStyles(this.props, this.context);
-    const valueLink = this.getValueLink(this.props);
-    const tabValue = valueLink.value;
-    const tabContent = [];
-    const width = 100 / this.getTabCount();
+    const className = classNames(classes.root, classNameProp);
+    const scrollerClassName = classNames(classes.scrollingContainer, {
+      [classes.fixed]: !scrollable,
+      [classes.scrollable]: scrollable,
+    });
+    const tabItemContainerClassName = classNames(classes.flexContainer, {
+      [classes.centered]: centered && !scrollable,
+    });
 
-    const tabs = this.getTabs().map((tab, index) => {
-      warning(tab.type && tab.type.muiName === 'Tab',
-        `Material-UI: Tabs only accepts Tab Components as children.
-        Found ${tab.type.muiName || tab.type} as child number ${index + 1} of Tabs`);
-
-      warning(!tabValue || tab.props.value !== undefined,
-        `Material-UI: Tabs value prop has been passed, but Tab ${index}
-        does not have a value prop. Needs value if Tabs is going
-        to be a controlled component.`);
-
-      tabContent.push(tab.props.children ?
-        createElement(tabTemplate || TabTemplate, {
-          key: index,
-          selected: this.getSelected(tab, index),
-          style: tabTemplateStyle,
-        }, tab.props.children) : undefined);
-
+    const children = Children.map(childrenProp, (tab, childIndex) => {
       return cloneElement(tab, {
-        key: index,
-        index: index,
-        selected: this.getSelected(tab, index),
-        width: `${width}%`,
-        onTouchTap: this.handleTabTouchTap,
+        fullWidth,
+        selected: childIndex === index,
+        index: childIndex,
+        onChange,
+        textColor,
       });
     });
 
-    const inkBar = this.state.selectedIndex !== -1 ? (
-      <InkBar
-        left={`${width * this.state.selectedIndex}%`}
-        width={`${width}%`}
-        style={inkBarStyle}
-      />
-    ) : null;
-
-    const inkBarContainerWidth = tabItemContainerStyle ?
-      tabItemContainerStyle.width : '100%';
+    const conditionalElements = this.getConditionalElements();
 
     return (
-      <div style={prepareStyles(Object.assign({}, style))} {...other}>
-        <div style={prepareStyles(Object.assign(styles.tabItemContainer, tabItemContainerStyle))}>
-          {tabs}
-        </div>
-        <div style={{width: inkBarContainerWidth}}>
-          {inkBar}
-        </div>
-        <div
-          style={prepareStyles(Object.assign({}, contentContainerStyle))}
-          className={contentContainerClassName}
-        >
-          {tabContent}
+      <div className={className} {...other}>
+        <EventListener target="window" onResize={this.handleResize} />
+        {conditionalElements.scrollbarSizeListener}
+        <div className={classes.flexContainer}>
+          {conditionalElements.scrollButtonLeft}
+          <div
+            className={scrollerClassName}
+            style={this.state.scrollerStyle}
+            ref={node => {
+              this.tabs = node;
+            }}
+            role="tablist"
+            onScroll={this.handleTabsScroll}
+          >
+            <div className={tabItemContainerClassName}>
+              {children}
+            </div>
+            <TabIndicator
+              style={this.state.indicatorStyle}
+              className={indicatorClassName}
+              color={indicatorColor}
+            />
+          </div>
+          {conditionalElements.scrollButtonRight}
         </div>
       </div>
     );
   }
 }
 
-export default Tabs;
+Tabs.propTypes = {
+  /**
+   * The CSS class name of the scroll button elements.
+   */
+  buttonClassName: PropTypes.string,
+  /**
+   * If `true`, the tabs will be centered.
+   * This property is intended for large views.
+   */
+  centered: PropTypes.bool,
+  /**
+   * The content of the component.
+   */
+  children: PropTypes.node,
+  /**
+   * Useful to extend the style applied to components.
+   */
+  classes: PropTypes.object.isRequired,
+  /**
+   * @ignore
+   */
+  className: PropTypes.string,
+  /**
+   * If `true`, the tabs will grow to use all the available space.
+   * This property is intended for small views.
+   */
+  fullWidth: PropTypes.bool,
+  /**
+   * The index of the currently selected `Tab`.
+   * If you don't want any selected `Tab`, you can set this property to `false`.
+   */
+  index: PropTypes.oneOfType([PropTypes.oneOf([false]), PropTypes.number]).isRequired,
+  /**
+   * The CSS class name of the indicator element.
+   */
+  indicatorClassName: PropTypes.string,
+  /**
+   * Determines the color of the indicator.
+   */
+  indicatorColor: PropTypes.oneOfType([PropTypes.oneOf(['accent', 'primary']), PropTypes.string]),
+  /**
+   * Callback fired when the index changes.
+   *
+   * @param {object} event The event source of the callback
+   * @param {number} index We default to the index of the child
+   */
+  onChange: PropTypes.func.isRequired,
+  /**
+   * True invokes scrolling properties and allow for horizontally scrolling
+   * (or swiping) the tab bar.
+   */
+  scrollable: PropTypes.bool,
+  /**
+   * Determine behavior of scroll buttons when tabs are set to scroll
+   * `auto` will only present them on medium and larger viewports
+   * `on` will always present them
+   * `off` will never present them
+   */
+  scrollButtons: PropTypes.oneOf(['auto', 'on', 'off']),
+  /**
+   * Determines the color of the `Tab`.
+   */
+  textColor: PropTypes.oneOfType([
+    PropTypes.oneOf(['accent', 'primary', 'inherit']),
+    PropTypes.string,
+  ]),
+  /**
+   * @ignore
+   * width prop provided by withWidth decorator
+   */
+  width: PropTypes.string,
+};
+
+export default compose(withStyles(styleSheet), withWidth())(Tabs);

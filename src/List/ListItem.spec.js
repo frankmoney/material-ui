@@ -1,237 +1,91 @@
-/* eslint-env mocha */
+// @flow
+
 import React from 'react';
-import {shallow} from 'enzyme';
-import {assert} from 'chai';
-import ListItem from './ListItem';
-import EnhancedButton from '../internal/EnhancedButton';
-import getMuiTheme from '../styles/getMuiTheme';
-import NestedList from './NestedList';
+import { assert } from 'chai';
+import { createShallow, getClasses } from '../test-utils';
+import ListItemText from './ListItemText';
+import ListItemSecondaryAction from './ListItemSecondaryAction';
+import ListItem, { styleSheet } from './ListItem';
 
 describe('<ListItem />', () => {
-  const muiTheme = getMuiTheme();
-  const shallowWithContext = (node) => shallow(node, {context: {muiTheme}});
+  let shallow;
+  let classes;
 
-  it('should render an EnhancedButton', () => {
-    const wrapper = shallowWithContext(
-      <ListItem />
-    );
-    const enhancedButton = wrapper.find(EnhancedButton);
-    assert.ok(enhancedButton.length);
+  before(() => {
+    shallow = createShallow({ dive: true });
+    classes = getClasses(styleSheet);
   });
 
-  it('should display a list-item with text if primaryText is specified', () => {
-    const testText = 'Primary Text';
-    const wrapper = shallowWithContext(
-      <ListItem
-        primaryText={testText}
-      />
-    );
-    const enhancedButton = wrapper.find(EnhancedButton);
-
-    assert.strictEqual(enhancedButton.children().text(), testText);
+  it('should render a div', () => {
+    const wrapper = shallow(<ListItem component="div" />);
+    assert.strictEqual(wrapper.name(), 'div');
   });
 
-  it('should display a list-item elment with a class if specified', () => {
-    const testClass = 'test-class';
-    const wrapper = shallowWithContext(
-      <ListItem
-        className={testClass}
-      />
-    );
-    const enhancedButton = wrapper.find(EnhancedButton);
-    assert.strictEqual(enhancedButton.prop('className'), testClass);
+  it('should render a li', () => {
+    const wrapper = shallow(<ListItem />);
+    assert.strictEqual(wrapper.name(), 'li');
   });
 
-  it('should display a disabled list-item if specified.', () => {
-    const wrapper = shallowWithContext(
-      <ListItem
-        disabled={true}
-      />
-    );
-    assert.notOk(wrapper.find(EnhancedButton).length, 'should not have an EnhancedButton');
+  it('should render with the user, root and gutters classes', () => {
+    const wrapper = shallow(<ListItem className="woof" />);
+    assert.strictEqual(wrapper.hasClass('woof'), true);
+    assert.strictEqual(wrapper.hasClass(classes.root), true);
+    assert.strictEqual(wrapper.hasClass(classes.gutters), true, 'should have the gutters class');
   });
 
-  it('should display a disabled list-item with a class if specified.', () => {
-    const testClass = 'test-class';
-    const wrapper = shallowWithContext(
-      <ListItem
-        className={testClass}
-        disabled={true}
-      />
+  it('should disable the gutters', () => {
+    const wrapper = shallow(<ListItem disableGutters />);
+    assert.strictEqual(wrapper.hasClass(classes.root), true);
+    assert.strictEqual(
+      wrapper.hasClass(classes.gutters),
+      false,
+      'should not have the gutters class',
     );
-
-    assert.notOk(wrapper.find(EnhancedButton).length, 'should not have an EnhancedButton');
-    assert.strictEqual(wrapper.find(`.${testClass}`).length, 1, 'should have a div with the test class');
   });
 
-  it('should display a checkbox in the list-item if specified.', () => {
-    const testClass = 'test-class';
-    const wrapper = shallowWithContext(
-      <ListItem
-        leftCheckbox={<div className="test-checkbox" />}
-        className={testClass}
-      />
-    );
-    assert.ok(wrapper.find('.test-checkbox').length);
-    assert.strictEqual(wrapper.find(`.${testClass}`).length, 1, 'should have a div with the test class');
-  });
-
-  describe('prop: primaryTogglesNestedList', () => {
-    it('should toggle nested list when true', () => {
-      const wrapper = shallowWithContext(
-        <ListItem
-          primaryTogglesNestedList={true}
-          nestedItems={[
-            <ListItem key={1} />,
-          ]}
-        />
-      );
-      const primaryTextButton = wrapper.find(EnhancedButton);
-
-      assert.strictEqual(wrapper.find(NestedList).props().open, false);
-
-      primaryTextButton.simulate('touchTap', {stopPropagation: () => {}});
-      assert.strictEqual(wrapper.find(NestedList).props().open, true);
-
-      primaryTextButton.simulate('touchTap', {stopPropagation: () => {}});
-      assert.strictEqual(wrapper.find(NestedList).props().open, false);
-    });
-
-    it('should not render primary text button when false', () => {
-      const wrapper = shallowWithContext(
-        <ListItem
-          primaryTogglesNestedList={false}
-          nestedItems={[
-            <ListItem key={1} />,
-          ]}
-        />
-      );
-
-      assert.strictEqual(wrapper.filter(EnhancedButton).length, 0);
+  describe('prop: button', () => {
+    it('should render a li', () => {
+      const wrapper = shallow(<ListItem button />);
+      assert.strictEqual(wrapper.props().component, 'li');
     });
   });
 
-  describe('prop: open', () => {
-    it('should initially open nested list', () => {
-      const wrapper = shallowWithContext(
-        <ListItem
-          initiallyOpen={true}
-          nestedItems={[
-            <ListItem key={1} />,
-          ]}
-        />
-      );
-
-      assert.strictEqual(wrapper.find(NestedList).length > 0, true);
-      assert.strictEqual(wrapper.find(NestedList).props().open, true);
+  describe('prop: component', () => {
+    it('should change the component', () => {
+      const wrapper = shallow(<ListItem button component="a" />);
+      assert.strictEqual(wrapper.props().component, 'a');
     });
+  });
 
-    it('should toggle nested list', () => {
-      const wrapper = shallowWithContext(
-        <ListItem
-          open={false}
-          nestedItems={[
-            <ListItem key={1} />,
-          ]}
-        />
+  describe('context: dense', () => {
+    it('should forward the context', () => {
+      const wrapper = shallow(<ListItem />);
+      assert.strictEqual(
+        wrapper.instance().getChildContext().dense,
+        false,
+        'dense should be false by default',
       );
 
-      assert.strictEqual(wrapper.find(NestedList).props().open, false);
       wrapper.setProps({
-        open: true,
+        dense: true,
       });
-      assert.strictEqual(wrapper.find(NestedList).props().open, true);
-    });
-
-    it('should not control the state', () => {
-      const wrapper = shallowWithContext(
-        <ListItem
-          initiallyOpen={false}
-          primaryTogglesNestedList={true}
-          nestedItems={[
-            <ListItem key={1} />,
-          ]}
-        />
+      assert.strictEqual(
+        wrapper.instance().getChildContext().dense,
+        true,
+        'dense should be true when set',
       );
-
-      const primaryTextButton = wrapper.find(EnhancedButton);
-      primaryTextButton.simulate('touchTap', {stopPropagation: () => {}});
-      assert.strictEqual(wrapper.find(NestedList).props().open, true);
-    });
-
-    it('should control the state', () => {
-      const wrapper = shallowWithContext(
-        <ListItem
-          open={false}
-          primaryTogglesNestedList={true}
-          nestedItems={[
-            <ListItem key={1} />,
-          ]}
-        />
-      );
-
-      const primaryTextButton = wrapper.find(EnhancedButton);
-      primaryTextButton.simulate('touchTap', {stopPropagation: () => {}});
-      assert.strictEqual(wrapper.find(NestedList).props().open, false);
     });
   });
 
-  describe('prop: hoverColor', () => {
-    const testColor = '#ededed';
-
-    it('should use a background color on hover if hoverColor is specified', () => {
-      const wrapper = shallowWithContext(
-        <ListItem hoverColor={testColor} />
+  describe('secondary action', () => {
+    it('should wrap with a container', () => {
+      const wrapper = shallow(
+        <ListItem>
+          <ListItemText primary="primary" />
+          <ListItemSecondaryAction />
+        </ListItem>,
       );
-      wrapper.find(EnhancedButton).simulate('mouseEnter');
-      assert.strictEqual(wrapper.find(EnhancedButton).props().style.backgroundColor, testColor);
-    });
-
-    it('should use a background color if isKeyboardFocused is true', () => {
-      const wrapper = shallowWithContext(
-        <ListItem hoverColor={testColor} isKeyboardFocused={true} />
-      );
-      assert.strictEqual(wrapper.find(EnhancedButton).props().style.backgroundColor, testColor);
-    });
-  });
-
-  describe('hover state', () => {
-    it('should reset the hover state when disabled', () => {
-      const wrapper = shallowWithContext(
-        <ListItem primaryText="foo" />
-      );
-
-      wrapper.find(EnhancedButton).simulate('mouseEnter');
-      assert.strictEqual(wrapper.state().hovered, true, 'should respond to the event');
-      wrapper.setProps({
-        disabled: true,
-      });
-      assert.strictEqual(wrapper.state().hovered, false, 'should reset the state');
-    });
-  });
-
-  describe('prop: containerElement', () => {
-    it('should use the given string containerElement prop', () => {
-      const wrapper = shallowWithContext(
-        <ListItem
-          containerElement="a"
-          primaryText="Links are great"
-        />
-      );
-      const button = wrapper.find(EnhancedButton).dive({context: {muiTheme}});
-      assert.strictEqual(button.is('a'), true, 'should match an a element');
-    });
-
-    it('should use the given ReactElement containerElement', () => {
-      const CustomElement = (props) => <a {...props} />;
-      const wrapper = shallowWithContext(
-        <ListItem
-          containerElement={<CustomElement someProp="yuuuuuge" />}
-          primaryText="Custom links are even greater"
-        />
-      );
-      const button = wrapper.find(EnhancedButton).dive({context: {muiTheme}});
-      assert.strictEqual(button.is(CustomElement), true, 'should match the custom element');
+      assert.strictEqual(wrapper.hasClass(classes.container), true);
     });
   });
 });

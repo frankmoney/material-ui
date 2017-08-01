@@ -1,4 +1,4 @@
-export BottomNavigation from './BottomNavigation';
-export BottomNavigationItem from './BottomNavigationItem';
+// @flow
 
-export default from './BottomNavigation';
+export { default } from './BottomNavigation';
+export { default as BottomNavigationButton } from './BottomNavigationButton';

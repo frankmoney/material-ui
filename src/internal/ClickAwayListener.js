@@ -1,63 +1,67 @@
-import {Component} from 'react';
+// @flow
+
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import ReactDOM from 'react-dom';
-import events from '../utils/events';
+import { findDOMNode } from 'react-dom';
+import EventListener from 'react-event-listener';
 
 const isDescendant = (el, target) => {
-  if (target !== null) {
+  if (target !== null && target.parentNode) {
     return el === target || isDescendant(el, target.parentNode);
   }
   return false;
 };
 
-const clickAwayEvents = ['mouseup', 'touchend'];
-const bind = (callback) => clickAwayEvents.forEach((event) => events.on(document, event, callback));
-const unbind = (callback) => clickAwayEvents.forEach((event) => events.off(document, event, callback));
-
+/**
+ * @ignore - internal component.
+ */
 class ClickAwayListener extends Component {
   static propTypes = {
-    children: PropTypes.element,
-    onClickAway: PropTypes.func,
+    children: PropTypes.element.isRequired,
+    onClickAway: PropTypes.func.isRequired,
   };
 
   componentDidMount() {
-    this.isCurrentlyMounted = true;
-    if (this.props.onClickAway) {
-      bind(this.handleClickAway);
-    }
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.onClickAway !== this.props.onClickAway) {
-      unbind(this.handleClickAway);
-      if (this.props.onClickAway) {
-        bind(this.handleClickAway);
-      }
-    }
+    this.mounted = true;
   }
 
   componentWillUnmount() {
-    this.isCurrentlyMounted = false;
-    unbind(this.handleClickAway);
+    this.mounted = false;
   }
 
-  handleClickAway = (event) => {
+  mounted = false;
+
+  handleClickAway = (event: Event) => {
+    // Ignore events that have been `event.preventDefault()` marked.
     if (event.defaultPrevented) {
       return;
     }
 
     // IE11 support, which trigger the handleClickAway even after the unbind
-    if (this.isCurrentlyMounted) {
-      const el = ReactDOM.findDOMNode(this);
+    if (this.mounted) {
+      const el = findDOMNode(this);
 
-      if (document.documentElement.contains(event.target) && !isDescendant(el, event.target)) {
+      if (
+        event.target instanceof HTMLElement &&
+        document.documentElement &&
+        document.documentElement.contains(event.target) &&
+        !isDescendant(el, event.target)
+      ) {
         this.props.onClickAway(event);
       }
     }
   };
 
   render() {
-    return this.props.children;
+    return (
+      <EventListener
+        target="document"
+        onMouseup={this.handleClickAway}
+        onTouchend={this.handleClickAway}
+      >
+        {this.props.children}
+      </EventListener>
+    );
   }
 }
 

@@ -1,1 +1,3 @@
-export default from './Divider';
+// @flow
+
+export { default } from './Divider';

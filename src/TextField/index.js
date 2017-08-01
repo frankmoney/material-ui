@@ -1,1 +1,3 @@
-export default from './TextField';
+// @flow
+
+export { default } from './TextField';

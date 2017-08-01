@@ -1,9 +1,8 @@
-export Table from './Table';
-export TableBody from './TableBody';
-export TableFooter from './TableFooter';
-export TableHeader from './TableHeader';
-export TableHeaderColumn from './TableHeaderColumn';
-export TableRow from './TableRow';
-export TableRowColumn from './TableRowColumn';
+// @flow
 
-export default from './Table';
+export { default } from './Table';
+export { default as TableHead } from './TableHead';
+export { default as TableBody } from './TableBody';
+export { default as TableRow } from './TableRow';
+export { default as TableCell } from './TableCell';
+export { default as TableSortLabel } from './TableSortLabel';

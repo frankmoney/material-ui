@@ -1,111 +1,65 @@
-/* eslint-env mocha */
+// @flow
+
 import React from 'react';
-import {spy} from 'sinon';
-import {shallow} from 'enzyme';
-import {assert} from 'chai';
-import SvgIcon from './SvgIcon';
-import getMuiTheme from '../styles/getMuiTheme';
+import { assert } from 'chai';
+import { createShallow, getClasses } from '../test-utils';
+import SvgIcon, { styleSheet } from './SvgIcon';
 
 describe('<SvgIcon />', () => {
-  const muiTheme = getMuiTheme();
-  const shallowWithContext = (node) => shallow(node, {context: {muiTheme}});
-  const path = <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />;
+  let shallow;
+  let classes;
+  let path;
+
+  before(() => {
+    shallow = createShallow({ dive: true });
+    classes = getClasses(styleSheet);
+    path = <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />;
+  });
 
   it('renders children by default', () => {
-    const wrapper = shallowWithContext(
-      <SvgIcon>{path}</SvgIcon>
-    );
-
-    assert.ok(wrapper.contains(path), 'should contain the children');
-  });
-
-  it('renders children and color', () => {
-    const wrapper = shallowWithContext(
-      <SvgIcon color="red">{path}</SvgIcon>
-    );
-
-    assert.ok(wrapper.contains(path), 'should contain the children');
-    assert.equal(wrapper.node.props.style.fill, 'red', 'should have color set to red');
-  });
-
-  it('renders children and hoverColor when mouseEnter', () => {
-    const onMouseEnter = spy();
-    const wrapper = shallowWithContext(
-      <SvgIcon
-        className="material-icons"
-        color="red"
-        hoverColor="green"
-        onMouseEnter={onMouseEnter}
-      >
+    const wrapper = shallow(
+      <SvgIcon>
         {path}
-      </SvgIcon>
+      </SvgIcon>,
     );
-
-    assert.ok(wrapper.contains(path), 'should contain the children');
-    assert.equal(wrapper.node.props.style.fill, 'red', 'should have color set to red');
-    wrapper.simulate('mouseEnter');
-    assert.equal(wrapper.node.props.style.fill, 'green', 'should have color set to green after hover');
-    assert.equal(onMouseEnter.calledOnce, true,
-      'should have called onMouseEnter callback function');
+    assert.strictEqual(wrapper.contains(path), true, 'should contain the children');
+    assert.strictEqual(wrapper.props()['aria-hidden'], 'true');
   });
 
-  it('renders children and call onMouseEnter callback', () => {
-    const onMouseEnter = spy();
-    const wrapper = shallowWithContext(
-      <SvgIcon onMouseEnter={onMouseEnter} hoverColor="green">{path}</SvgIcon>
-    );
-
-    assert.ok(wrapper.contains(path), 'should contain the children');
-    wrapper.simulate('mouseEnter');
-    assert.equal(onMouseEnter.calledOnce, true,
-      'should have called onMouseEnter callback function');
+  it('should render an svg', () => {
+    const wrapper = shallow(<SvgIcon>book</SvgIcon>);
+    assert.strictEqual(wrapper.name(), 'svg');
   });
 
-  it('renders children and call onMouseEnter callback even when hoverColor is not set', () => {
-    const onMouseEnter = spy();
-    const wrapper = shallowWithContext(
-      <SvgIcon onMouseEnter={onMouseEnter}>{path}</SvgIcon>
+  it('should spread props on svg', () => {
+    const wrapper = shallow(
+      <SvgIcon data-test="hello" viewBox="0 0 32 32">
+        {path}
+      </SvgIcon>,
     );
-
-    assert.ok(wrapper.contains(path), 'should contain the children');
-    wrapper.simulate('mouseEnter');
-    assert.equal(onMouseEnter.calledOnce, true,
-      'should have called onMouseEnter callback function');
+    assert.strictEqual(wrapper.props()['data-test'], 'hello', 'should be spread on the svg');
+    assert.strictEqual(wrapper.props().viewBox, '0 0 32 32', 'should override the viewBox');
   });
 
-  it('renders children and call onMouseLeave callback', () => {
-    const onMouseLeave = spy();
-    const wrapper = shallowWithContext(
-      <SvgIcon onMouseLeave={onMouseLeave} hoverColor="green">{path}</SvgIcon>
+  it('should render with the user and SvgIcon classes', () => {
+    const wrapper = shallow(
+      <SvgIcon className="meow">
+        {path}
+      </SvgIcon>,
     );
-
-    assert.ok(wrapper.contains(path), 'should contain the children');
-    wrapper.simulate('mouseLeave');
-    assert.equal(onMouseLeave.calledOnce, true,
-      'should have called onMouseLeave callback function');
+    assert.strictEqual(wrapper.hasClass('meow'), true, 'should have the "meow" class');
+    assert.strictEqual(wrapper.hasClass(classes.root), true, 'should have the SvgIcon class');
   });
 
-  it('renders children and call onMouseLeave callback even when hoverColor is not set', () => {
-    const onMouseLeave = spy();
-    const wrapper = shallowWithContext(
-      <SvgIcon onMouseLeave={onMouseLeave}>{path}</SvgIcon>
-    );
-
-    assert.ok(wrapper.contains(path), 'should contain the children');
-    wrapper.simulate('mouseLeave');
-    assert.equal(onMouseLeave.calledOnce, true,
-      'should have called onMouseLeave callback function');
-  });
-
-  it('renders children and overwrite styles', () => {
-    const style = {
-      backgroundColor: 'red',
-    };
-    const wrapper = shallowWithContext(
-      <SvgIcon style={style}>{path}</SvgIcon>
-    );
-
-    assert.equal(wrapper.get(0).props.style.backgroundColor, style.backgroundColor,
-      'should have backgroundColor to red');
+  describe('prop: titleAccess', () => {
+    it('should be able to make an icon accessible', () => {
+      const wrapper = shallow(
+        <SvgIcon title="Go to link" titleAccess="Network">
+          {path}
+        </SvgIcon>,
+      );
+      assert.strictEqual(wrapper.find('title').text(), 'Network');
+      assert.strictEqual(wrapper.props()['aria-hidden'], 'false');
+    });
   });
 });

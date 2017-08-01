@@ -1,238 +1,364 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
-import transitions from '../styles/transitions';
+// @flow
+
+import React, { Component, createElement, cloneElement } from 'react';
+import type { Element } from 'react';
+import classNames from 'classnames';
+import EventListener from 'react-event-listener';
+import createStyleSheet from '../styles/createStyleSheet';
+import withStyles from '../styles/withStyles';
+import { duration } from '../styles/transitions';
 import ClickAwayListener from '../internal/ClickAwayListener';
-import SnackbarBody from './SnackbarBody';
+import { capitalizeFirstLetter, createChainedFunction } from '../utils/helpers';
+import Slide from '../transitions/Slide';
+import SnackbarContent from './SnackbarContent';
+import type { TransitionCallback } from '../internal/Transition';
 
-function getStyles(props, context, state) {
-  const {
-    muiTheme: {
-      baseTheme: {
-        spacing: {
-          desktopSubheaderHeight,
-        },
-      },
-      zIndex,
-    },
-  } = context;
+export const styleSheet = createStyleSheet('MuiSnackbar', theme => {
+  const gutter = theme.spacing.unit * 3;
+  const top = { top: 0 };
+  const bottom = { bottom: 0 };
+  const right = { justifyContent: 'flex-end' };
+  const left = { justifyContent: 'flex-start' };
+  const topSpace = { top: gutter };
+  const bottomSpace = { bottom: gutter };
+  const rightSpace = { right: gutter };
+  const leftSpace = { left: gutter };
 
-  const {open} = state;
-
-  const styles = {
+  return {
     root: {
+      zIndex: theme.zIndex.snackbar,
       position: 'fixed',
-      left: '50%',
       display: 'flex',
-      bottom: 0,
-      zIndex: zIndex.snackbar,
-      visibility: open ? 'visible' : 'hidden',
-      transform: open ?
-        'translate(-50%, 0)' :
-        `translate(-50%, ${desktopSubheaderHeight}px)`,
-      transition: `${transitions.easeOut('400ms', 'transform')}, ${
-        transitions.easeOut('400ms', 'visibility')}`,
+      left: 0,
+      right: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+      pointerEvents: 'none',
+    },
+    anchorTopCenter: {
+      extend: [top],
+    },
+    anchorBottomCenter: {
+      extend: [bottom],
+    },
+    anchorTopRight: {
+      extend: [top, right],
+      [theme.breakpoints.up('md')]: {
+        extend: [topSpace, rightSpace],
+      },
+    },
+    anchorBottomRight: {
+      extend: [bottom, right],
+      [theme.breakpoints.up('md')]: {
+        extend: [bottomSpace, rightSpace],
+      },
+    },
+    anchorTopLeft: {
+      extend: [top, left],
+      [theme.breakpoints.up('md')]: {
+        extend: [topSpace, leftSpace],
+      },
+    },
+    anchorBottomLeft: {
+      extend: [bottom, left],
+      [theme.breakpoints.up('md')]: {
+        extend: [bottomSpace, leftSpace],
+      },
     },
   };
+});
 
-  return styles;
-}
+type Origin = {
+  horizontal?: 'left' | 'center' | 'right' | number,
+  vertical?: 'top' | 'center' | 'bottom' | number,
+};
 
-class Snackbar extends Component {
-  static propTypes = {
-    /**
-     * The label for the action on the snackbar.
-     */
-    action: PropTypes.node,
-    /**
-     * The number of milliseconds to wait before automatically dismissing.
-     * If no value is specified the snackbar will dismiss normally.
-     * If a value is provided the snackbar can still be dismissed normally.
-     * If a snackbar is dismissed before the timer expires, the timer will be cleared.
-     */
-    autoHideDuration: PropTypes.number,
-    /**
-     * Override the inline-styles of the body element.
-     */
-    bodyStyle: PropTypes.object,
-    /**
-     * The css class name of the root element.
-     */
-    className: PropTypes.string,
-    /**
-     * Override the inline-styles of the content element.
-     */
-    contentStyle: PropTypes.object,
-    /**
-     * The message to be displayed.
-     *
-     * (Note: If the message is an element or array, and the `Snackbar` may re-render while it is still open,
-     * ensure that the same object remains as the `message` property if you want to avoid the `Snackbar` hiding and
-     * showing again)
-     */
-    message: PropTypes.node.isRequired,
-    /**
-     * Fired when the action button is touchtapped.
-     *
-     * @param {object} event Action button event.
-     */
-    onActionTouchTap: PropTypes.func,
-    /**
-     * Fired when the `Snackbar` is requested to be closed by a click outside the `Snackbar`, or after the
-     * `autoHideDuration` timer expires.
-     *
-     * Typically `onRequestClose` is used to set state in the parent component, which is used to control the `Snackbar`
-     * `open` prop.
-     *
-     * The `reason` parameter can optionally be used to control the response to `onRequestClose`,
-     * for example ignoring `clickaway`.
-     *
-     * @param {string} reason Can be:`"timeout"` (`autoHideDuration` expired) or: `"clickaway"`
-     */
-    onRequestClose: PropTypes.func,
-    /**
-     * Controls whether the `Snackbar` is opened or not.
-     */
-    open: PropTypes.bool.isRequired,
-    /**
-     * Override the inline-styles of the root element.
-     */
-    style: PropTypes.object,
+type DefaultProps = {
+  anchorOrigin: Origin,
+  autoHideDuration: ?number,
+  enterTransitionDuration: number,
+  leaveTransitionDuration: number,
+};
+
+type Props = DefaultProps & {
+  /**
+   * The action to display.
+   */
+  action?: Element<*>,
+  /**
+   * The anchor of the `Snackbar`.
+   */
+  anchorOrigin?: Origin,
+  /**
+   * The number of milliseconds to wait before automatically dismissing.
+   * This behavior is disabled by default with the `null` value.
+   */
+  autoHideDuration?: number,
+  /**
+   * If you wish the take control over the children of the component you can use that property.
+   * When using it, no `SnackbarContent` component will be rendered.
+   */
+  children?: Element<*>,
+  /**
+   * Useful to extend the style applied to components.
+   */
+  classes: Object,
+  /**
+   * @ignore
+   */
+  className?: string,
+  /**
+   * Customizes duration of enter animation (ms)
+   */
+  enterTransitionDuration?: number,
+  /**
+   * When displaying multiple consecutive Snackbars from a parent renedering a single
+   * <Snackbar/>, add the key property to ensure independent treatment of each message.
+   * e.g. <Snackbar key={message} />, otherwise, the message may update-in-place and
+   * features such as autoHideDuration may be canceled.
+   */
+  key?: any,
+  /**
+   * Customizes duration of leave animation (ms)
+   */
+  leaveTransitionDuration?: number,
+  /**
+   * The message to display.
+   */
+  message?: Element<*>,
+  /**
+   * Callback fired before the transition is entering.
+   */
+  onEnter?: TransitionCallback,
+  /**
+   * Callback fired when the transition is entering.
+   */
+  onEntering?: TransitionCallback,
+  /**
+   * Callback fired when the transition has entered.
+   */
+  onEntered?: TransitionCallback,
+  /**
+   * Callback fired before the transition is exiting.
+   */
+  onExit?: TransitionCallback,
+  /**
+   * Callback fired when the transition is exiting.
+   */
+  onExiting?: TransitionCallback,
+  /**
+   * Callback fired when the transition has exited.
+   */
+  onExited?: TransitionCallback,
+  /**
+   * @ignore
+   */
+  onMouseEnter?: Function,
+  /**
+   * @ignore
+   */
+  onMouseLeave?: Function,
+  /**
+   * Callback fired when the component requests to be closed.
+   *
+   * Typically `onRequestClose` is used to set state in the parent component,
+   * which is used to control the `Snackbar` `open` prop.
+   *
+   * The `reason` parameter can optionally be used to control the response to `onRequestClose`,
+   * for example ignoring `clickaway`.
+   *
+   * @param {object} event The event source of the callback
+   * @param {string} reason Can be:`"timeout"` (`autoHideDuration` expired) or: `"clickaway"`
+   */
+  onRequestClose?: (event: ?Event, reason: string) => void,
+  /**
+   * If true, `Snackbar` is open.
+   */
+  open: boolean,
+  /**
+   * Properties applied to the `SnackbarContent` element.
+   */
+  SnackbarContentProps?: Object,
+  /**
+   * Object with Transition component, props & create Fn.
+   */
+  transition?: Function | Element<*>,
+};
+
+type State = {
+  exited: boolean,
+};
+
+class Snackbar extends Component<DefaultProps, Props, State> {
+  props: Props;
+  static defaultProps: DefaultProps = {
+    anchorOrigin: { vertical: 'bottom', horizontal: 'center' },
+    autoHideDuration: null,
+    enterTransitionDuration: duration.enteringScreen,
+    leaveTransitionDuration: duration.leavingScreen,
   };
 
-  static contextTypes = {
-    muiTheme: PropTypes.object.isRequired,
+  state: State = {
+    // Used to only render active snackbars.
+    exited: false,
   };
 
   componentWillMount() {
-    this.setState({
-      open: this.props.open,
-      message: this.props.message,
-      action: this.props.action,
-    });
+    if (!this.props.open) {
+      this.setState({ exited: true });
+    }
   }
 
   componentDidMount() {
-    if (this.state.open) {
+    if (this.props.open) {
       this.setAutoHideTimer();
-      this.setTransitionTimer();
     }
   }
 
   componentWillReceiveProps(nextProps) {
-    if (this.props.open && nextProps.open &&
-        (nextProps.message !== this.props.message || nextProps.action !== this.props.action)) {
-      this.setState({
-        open: false,
-      });
-
-      clearTimeout(this.timerOneAtTheTimeId);
-      this.timerOneAtTheTimeId = setTimeout(() => {
-        this.setState({
-          message: nextProps.message,
-          action: nextProps.action,
-          open: true,
-        });
-      }, 400);
-    } else {
-      const open = nextProps.open;
-
-      this.setState({
-        open: open !== null ? open : this.state.open,
-        message: nextProps.message,
-        action: nextProps.action,
-      });
+    if (nextProps.open && this.state.exited) {
+      this.setState({ exited: false });
     }
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.open !== this.state.open) {
-      if (this.state.open) {
+  componentDidUpdate(prevProps) {
+    if (prevProps.open !== this.props.open) {
+      if (this.props.open) {
         this.setAutoHideTimer();
-        this.setTransitionTimer();
       } else {
-        clearTimeout(this.timerAutoHideId);
+        clearTimeout(this.timerAutoHide);
       }
     }
   }
 
   componentWillUnmount() {
-    clearTimeout(this.timerAutoHideId);
-    clearTimeout(this.timerTransitionId);
-    clearTimeout(this.timerOneAtTheTimeId);
+    clearTimeout(this.timerAutoHide);
   }
 
-  componentClickAway = () => {
-    if (this.timerTransitionId) {
-      // If transitioning, don't close the snackbar.
+  timerAutoHide = null;
+
+  // Timer that controls delay before snackbar auto hides
+  setAutoHideTimer(autoHideDuration = null) {
+    if (!this.props.onRequestClose || this.props.autoHideDuration === null) {
       return;
     }
 
-    if (this.props.open !== null && this.props.onRequestClose) {
-      this.props.onRequestClose('clickaway');
-    } else {
-      this.setState({open: false});
+    clearTimeout(this.timerAutoHide);
+    this.timerAutoHide = setTimeout(() => {
+      if (!this.props.onRequestClose || this.props.autoHideDuration === null) {
+        return;
+      }
+
+      this.props.onRequestClose(null, 'timeout');
+    }, autoHideDuration || this.props.autoHideDuration);
+  }
+
+  handleMouseEnter = (event: SyntheticUIEvent) => {
+    if (this.props.onMouseEnter) {
+      this.props.onMouseEnter(event);
+    }
+    this.handlePause();
+  };
+
+  handleMouseLeave = (event: SyntheticUIEvent) => {
+    if (this.props.onMouseLeave) {
+      this.props.onMouseLeave(event);
+    }
+    this.handleResume();
+  };
+
+  handleClickAway = (event: Event) => {
+    if (this.props.onRequestClose) {
+      this.props.onRequestClose(event, 'clickaway');
     }
   };
 
-  // Timer that controls delay before snackbar auto hides
-  setAutoHideTimer() {
-    const autoHideDuration = this.props.autoHideDuration;
+  // Pause the timer when the user is interacting with the Snackbar or when he can't see it.
+  handlePause = () => {
+    clearTimeout(this.timerAutoHide);
+  };
 
-    if (autoHideDuration > 0) {
-      clearTimeout(this.timerAutoHideId);
-      this.timerAutoHideId = setTimeout(() => {
-        if (this.props.open !== null && this.props.onRequestClose) {
-          this.props.onRequestClose('timeout');
-        } else {
-          this.setState({open: false});
-        }
-      }, autoHideDuration);
+  handleResume = () => {
+    if (this.props.autoHideDuration !== null) {
+      this.setAutoHideTimer(this.props.autoHideDuration * 0.5);
     }
-  }
+  };
 
-  // Timer that controls delay before click-away events are captured (based on when animation completes)
-  setTransitionTimer() {
-    this.timerTransitionId = setTimeout(() => {
-      this.timerTransitionId = undefined;
-    }, 400);
-  }
+  handleTransitionExited = () => {
+    this.setState({ exited: true });
+  };
 
   render() {
     const {
-      autoHideDuration, // eslint-disable-line no-unused-vars
-      contentStyle,
-      bodyStyle,
-      message: messageProp, // eslint-disable-line no-unused-vars
-      onRequestClose, // eslint-disable-line no-unused-vars
-      onActionTouchTap,
-      style,
+      action,
+      anchorOrigin: { vertical, horizontal },
+      autoHideDuration,
+      children,
+      classes,
+      className,
+      enterTransitionDuration,
+      leaveTransitionDuration,
+      message,
+      onEnter,
+      onEntering,
+      onEntered,
+      onExit,
+      onExiting,
+      onExited,
+      onMouseEnter,
+      onMouseLeave,
+      onRequestClose,
+      open,
+      SnackbarContentProps,
+      // $FlowFixMe - invalid error? Property cannot be accessed on any member of intersection type
+      transition: transitionProp,
       ...other
     } = this.props;
 
-    const {
-      action,
-      message,
-      open,
-    } = this.state;
+    if (!open && this.state.exited) {
+      return null;
+    }
 
-    const {prepareStyles} = this.context.muiTheme;
-    const styles = getStyles(this.props, this.context, this.state);
+    const createTransitionFn = typeof transitionProp === 'function' ? createElement : cloneElement;
+    const transition = transitionProp || <Slide direction={vertical === 'top' ? 'down' : 'up'} />;
 
     return (
-      <ClickAwayListener onClickAway={open ? this.componentClickAway : null}>
-        <div {...other} style={prepareStyles(Object.assign(styles.root, style))}>
-          <SnackbarBody
-            action={action}
-            contentStyle={contentStyle}
-            message={message}
-            open={open}
-            onActionTouchTap={onActionTouchTap}
-            style={bodyStyle}
-          />
-        </div>
-      </ClickAwayListener>
+      <EventListener target="window" onFocus={this.handleResume} onBlur={this.handlePause}>
+        <ClickAwayListener onClickAway={this.handleClickAway}>
+          <div
+            className={classNames(
+              classes.root,
+              classes[
+                `anchor${capitalizeFirstLetter(vertical)}${capitalizeFirstLetter(horizontal)}`
+              ],
+              className,
+            )}
+            onMouseEnter={this.handleMouseEnter}
+            onMouseLeave={this.handleMouseLeave}
+            {...other}
+          >
+            {createTransitionFn(
+              transition,
+              {
+                in: open,
+                transitionAppear: true,
+                enterTransitionDuration,
+                leaveTransitionDuration,
+                onEnter,
+                onEntering,
+                onEntered,
+                onExit,
+                onExiting,
+                onExited: createChainedFunction(this.handleTransitionExited, onExited),
+              },
+              children ||
+                <SnackbarContent message={message} action={action} {...SnackbarContentProps} />,
+            )}
+          </div>
+        </ClickAwayListener>
+      </EventListener>
     );
   }
 }
 
-export default Snackbar;
+export default withStyles(styleSheet)(Snackbar);

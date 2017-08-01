@@ -1,66 +1,83 @@
-export AppBar from './AppBar';
-export AutoComplete from './AutoComplete';
-export Avatar from './Avatar';
-export Badge from './Badge';
-export BottomNavigation from './BottomNavigation';
-export BottomNavigationItem from './BottomNavigation/BottomNavigationItem';
-export Card from './Card';
-export CardActions from './Card/CardActions';
-export CardHeader from './Card/CardHeader';
-export CardMedia from './Card/CardMedia';
-export CardTitle from './Card/CardTitle';
-export CardText from './Card/CardText';
-export Checkbox from './Checkbox';
-export Chip from './Chip';
-export CircularProgress from './CircularProgress';
-export DatePicker from './DatePicker';
-export Dialog from './Dialog';
-export Divider from './Divider';
-export Drawer from './Drawer';
-export DropDownMenu from './DropDownMenu';
-export FlatButton from './FlatButton';
-export FloatingActionButton from './FloatingActionButton';
-export FontIcon from './FontIcon';
-export GridList from './GridList';
-export GridTile from './GridList/GridTile';
-export IconButton from './IconButton';
-export IconMenu from './IconMenu';
-export LinearProgress from './LinearProgress';
-export List from './List';
-export ListItem from './List/ListItem';
-export makeSelectable from './List/makeSelectable';
-export Menu from './Menu';
-export MenuItem from './MenuItem';
-export MuiThemeProvider from './styles/MuiThemeProvider';
-export Paper from './Paper';
-export Popover from './Popover';
-export RadioButton from './RadioButton';
-export RadioButtonGroup from './RadioButton/RadioButtonGroup';
-export RaisedButton from './RaisedButton';
-export RefreshIndicator from './RefreshIndicator';
-export SelectField from './SelectField';
-export Slider from './Slider';
-export Subheader from './Subheader';
-export SvgIcon from './SvgIcon';
-export Step from './Stepper/Step';
-export StepButton from './Stepper/StepButton';
-export StepContent from './Stepper/StepContent';
-export StepLabel from './Stepper/StepLabel';
-export Stepper from './Stepper/Stepper';
-export Snackbar from './Snackbar';
-export Tabs from './Tabs';
-export Tab from './Tabs/Tab';
-export Table from './Table';
-export TableBody from './Table/TableBody';
-export TableFooter from './Table/TableFooter';
-export TableHeader from './Table/TableHeader';
-export TableHeaderColumn from './Table/TableHeaderColumn';
-export TableRow from './Table/TableRow';
-export TableRowColumn from './Table/TableRowColumn';
-export TextField from './TextField';
-export TimePicker from './TimePicker';
-export Toggle from './Toggle';
-export Toolbar from './Toolbar';
-export ToolbarGroup from './Toolbar/ToolbarGroup';
-export ToolbarSeparator from './Toolbar/ToolbarSeparator';
-export ToolbarTitle from './Toolbar/ToolbarTitle';
+// @flow
+
+export { default as AppBar } from './AppBar';
+export { default as Avatar } from './Avatar';
+export { default as Badge } from './Badge';
+
+export { default as BottomNavigation, BottomNavigationButton } from './BottomNavigation';
+
+export { default as Button } from './Button';
+
+export { default as Card, CardActions, CardContent, CardHeader, CardMedia } from './Card';
+
+export { default as Checkbox } from './Checkbox';
+export { default as Chip } from './Chip';
+
+export {
+  default as Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from './Dialog';
+
+export { default as Divider } from './Divider';
+export { default as Drawer } from './Drawer';
+
+export { FormControl, FormGroup, FormLabel, FormHelperText, FormControlLabel } from './Form';
+
+export { default as Hidden } from './Hidden';
+export { default as Icon } from './Icon';
+export { default as IconButton } from './IconButton';
+
+export { default as Input, InputLabel } from './Input';
+
+export { default as Grid } from './Grid';
+
+export {
+  default as List,
+  ListItem,
+  ListItemAvatar,
+  ListItemIcon,
+  ListItemSecondaryAction,
+  ListItemText,
+  ListSubheader,
+} from './List';
+
+export { default as Menu, MenuItem, MenuList } from './Menu';
+
+export { default as Paper } from './Paper';
+
+export { CircularProgress, LinearProgress } from './Progress';
+
+export { default as Radio, RadioGroup } from './Radio';
+
+export { default as Snackbar, SnackbarContent } from './Snackbar';
+
+export { MuiThemeProvider } from './styles';
+
+// eslint-disable-next-line import/first
+import * as colors from './colors';
+
+export { colors };
+
+export { default as SvgIcon } from './SvgIcon';
+
+export { default as Switch } from './Switch';
+
+export {
+  default as Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TableSortLabel,
+} from './Table';
+
+export { default as Tabs, Tab } from './Tabs';
+
+export { default as Typography } from './Typography';
+
+export { default as TextField } from './TextField';
+
+export { default as Toolbar } from './Toolbar';

@@ -1,59 +1,81 @@
-/* eslint-env mocha */
+// @flow
+
 import React from 'react';
-import {shallow} from 'enzyme';
-import {assert} from 'chai';
-import BottomNavigation from './BottomNavigation';
-import BottomNavigationItem from './BottomNavigationItem';
-import getMuiTheme from '../styles/getMuiTheme';
+import { assert } from 'chai';
+import { spy } from 'sinon';
+import { createShallow, createMount, getClasses } from '../test-utils';
+import BottomNavigationButton from './BottomNavigationButton';
+import Icon from '../Icon';
+import BottomNavigation, { styleSheet } from './BottomNavigation';
 
 describe('<BottomNavigation />', () => {
-  const muiTheme = getMuiTheme();
-  const shallowWithContext = (node) => shallow(node, {context: {muiTheme}});
+  let shallow;
+  let mount;
+  let classes;
+  const icon = <Icon>restore</Icon>;
 
-  describe('prop: selectedIndex', () => {
-    it('determines which BottomNavigationItem is selected', () => {
-      const wrapper = shallowWithContext(
-        <BottomNavigation selectedIndex={0}>
-          <BottomNavigationItem />
-          <BottomNavigationItem />
-          <BottomNavigationItem />
-        </BottomNavigation>
-      );
+  before(() => {
+    shallow = createShallow({ dive: true });
+    classes = getClasses(styleSheet);
+    mount = createMount();
+  });
 
-      const bottomNavigationItems = wrapper.find(BottomNavigationItem);
+  after(() => {
+    mount.cleanUp();
+  });
 
-      assert.strictEqual(bottomNavigationItems.at(0).props().selected, true,
-        'index 0 should be selected'
-      );
-      assert.notStrictEqual(bottomNavigationItems.at(1).props().selected, true,
-        'index 1 should not be selected'
-      );
-      assert.notStrictEqual(bottomNavigationItems.at(2).props().selected, true,
-        'index 2 should not be selected'
-      );
-    });
+  it('should render with the root class', () => {
+    const wrapper = shallow(
+      <BottomNavigation showLabels>
+        <BottomNavigationButton icon={icon} />
+      </BottomNavigation>,
+    );
+    assert.strictEqual(wrapper.name(), 'div');
+    assert.strictEqual(wrapper.hasClass(classes.root), true);
+  });
 
-    it('changes the selected BottomNavigationItem', () => {
-      const wrapper = shallowWithContext(
-        <BottomNavigation selectedIndex={0}>
-          <BottomNavigationItem />
-          <BottomNavigationItem />
-          <BottomNavigationItem />
-        </BottomNavigation>
-      );
+  it('should render with the user and root classes', () => {
+    const wrapper = shallow(
+      <BottomNavigation showLabels className="woof">
+        <BottomNavigationButton icon={icon} />
+      </BottomNavigation>,
+    );
+    assert.strictEqual(wrapper.hasClass('woof'), true);
+    assert.strictEqual(wrapper.hasClass(classes.root), true);
+  });
 
-      wrapper.setProps({selectedIndex: 1});
+  it('should pass selected prop to children', () => {
+    const wrapper = shallow(
+      <BottomNavigation showLabels value={1}>
+        <BottomNavigationButton icon={icon} />
+        <BottomNavigationButton icon={icon} />
+      </BottomNavigation>,
+    );
+    assert.strictEqual(wrapper.childAt(0).props().selected, false, 'should have selected to false');
+    assert.strictEqual(wrapper.childAt(1).props().selected, true, 'should have selected');
+  });
 
-      const bottomNavigationItems = wrapper.find(BottomNavigationItem);
-      assert.notStrictEqual(bottomNavigationItems.at(0).props().selected, true,
-        'index 0 should not be selected'
-      );
-      assert.strictEqual(bottomNavigationItems.at(1).props().selected, true,
-        'index 1 should be selected'
-      );
-      assert.notStrictEqual(bottomNavigationItems.at(2).props().selected, true,
-        'index 2 should not be selected'
-      );
-    });
+  it('should overwrite parent showLabel prop', () => {
+    const wrapper = shallow(
+      <BottomNavigation showLabels value={1}>
+        <BottomNavigationButton icon={icon} />
+        <BottomNavigationButton icon={icon} showLabel={false} />
+      </BottomNavigation>,
+    );
+    assert.strictEqual(wrapper.childAt(0).props().showLabel, true, 'should have parent showLabel');
+    assert.strictEqual(wrapper.childAt(1).props().showLabel, false, 'should overwrite showLabel');
+  });
+
+  it('should pass selected prop to children', () => {
+    const handleChange = spy();
+    const wrapper = mount(
+      <BottomNavigation showLabels value={0} onChange={handleChange}>
+        <BottomNavigationButton icon={icon} />
+        <BottomNavigationButton icon={icon} />
+      </BottomNavigation>,
+    );
+    wrapper.find(BottomNavigationButton).at(1).simulate('click');
+    assert.strictEqual(handleChange.callCount, 1, 'should have been called once');
+    assert.strictEqual(handleChange.args[0][1], 1, 'should have been called with value 1');
   });
 });

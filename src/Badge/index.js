@@ -1,1 +1,3 @@
-export default from './Badge';
+// @flow
+
+export { default } from './Badge';

@@ -1,1 +1,4 @@
-export default from './Snackbar';
+// @flow
+
+export { default } from './Snackbar';
+export { default as SnackbarContent } from './SnackbarContent';

@@ -1,9 +1,7 @@
-export Card from './Card';
-export CardHeader from './CardHeader';
-export CardTitle from './CardTitle';
-export CardMedia from './CardMedia';
-export CardText from './CardText';
-export CardActions from './CardActions';
-export CardExpandable from './CardExpandable';
+// @flow
 
-export default from './Card';
+export { default } from './Card';
+export { default as CardContent } from './CardContent';
+export { default as CardActions } from './CardActions';
+export { default as CardMedia } from './CardMedia';
+export { default as CardHeader } from './CardHeader';

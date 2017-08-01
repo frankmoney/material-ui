@@ -1,190 +1,258 @@
-/* eslint-env mocha */
-import React from 'react';
-import {shallow} from 'enzyme';
-import {assert} from 'chai';
-import {spy} from 'sinon';
-import Chip from './Chip';
-import getMuiTheme from '../styles/getMuiTheme';
+// @flow
 
-const Avatar = (props) => <div {...props} />;
-Avatar.muiName = 'Avatar';
+import React from 'react';
+import keycode from 'keycode';
+import { assert } from 'chai';
+import { spy } from 'sinon';
+import { createShallow, createMount, getClasses } from '../test-utils';
+import Avatar from '../Avatar';
+import Chip, { styleSheet } from './Chip';
 
 describe('<Chip />', () => {
-  const muiTheme = getMuiTheme();
-  const themedShallow = (node) => {
-    const context = {muiTheme};
-    return shallow(node, {context});
-  };
+  let shallow;
+  let classes;
 
-  describe('state', () => {
-    const wrapper = themedShallow(
-      <Chip onTouchTap={() => {}}>Label</Chip>
-    );
+  before(() => {
+    shallow = createShallow({ dive: true });
+    classes = getClasses(styleSheet);
+  });
 
-    it('renders with initial state of false for clicked and focused', () => {
-      assert.strictEqual(wrapper.state('clicked'), false);
-      assert.strictEqual(wrapper.state('focused'), false);
+  describe('text only', () => {
+    let wrapper;
+
+    before(() => {
+      wrapper = shallow(
+        <Chip className="my-Chip" data-my-prop="woof">
+          Text Chip
+        </Chip>,
+      );
     });
 
-    it('sets the focus state onFocus', () => {
-      wrapper.simulate('focus');
-      assert.strictEqual(wrapper.state('focused'), true);
+    it('should render a div containing a span', () => {
+      assert.strictEqual(wrapper.name(), 'div');
+      assert.strictEqual(wrapper.childAt(0).is('span'), true, 'should be a span');
     });
 
-    it('sets the clicked state on mouseDown', () => {
-      wrapper.simulate('mouseDown', {stopPropagation() {}, button: 0});
-      assert.strictEqual(wrapper.state('clicked'), true);
+    it('should merge user classes & spread custom props to the root node', () => {
+      assert.strictEqual(wrapper.hasClass(classes.root), true);
+      assert.strictEqual(wrapper.hasClass('my-Chip'), true);
+      assert.strictEqual(wrapper.prop('data-my-prop'), 'woof');
     });
 
-    it('unsets the clicked state on mouseUp', () => {
-      wrapper.simulate('mouseUp');
-      assert.strictEqual(wrapper.state('clicked'), false);
-    });
-
-    it('sets the clicked state on touchStart', () => {
-      wrapper.simulate('touchStart', {stopPropagation() {}});
-      assert.strictEqual(wrapper.state('clicked'), true);
-    });
-
-    it('unsets the clicked state on touchEnd', () => {
-      wrapper.simulate('touchEnd');
-      assert.strictEqual(wrapper.state('clicked'), false);
-    });
-
-    it('resets the state on blur', () => {
-      wrapper.setState({focused: true, clicked: true});
-      wrapper.simulate('blur');
-      assert.strictEqual(wrapper.state('clicked'), false);
-      assert.strictEqual(wrapper.state('focused'), false);
+    it('should have a tabIndex prop with value -1', () => {
+      assert.strictEqual(wrapper.props().tabIndex, -1);
     });
   });
 
-  describe('rendering', () => {
-    it('renders an EnhancedButton', () => {
-      const wrapper = themedShallow(
-        <Chip>Label</Chip>
+  describe('clickable text chip', () => {
+    let wrapper;
+    let handleClick;
+
+    before(() => {
+      handleClick = () => {};
+      wrapper = shallow(
+        <Chip className="my-Chip" data-my-prop="woof" onClick={handleClick}>
+          Text Chip
+        </Chip>,
       );
-      assert.ok(wrapper.is('EnhancedButton'));
     });
 
-    it('renders children', () => {
-      const wrapper = themedShallow(
-        <Chip>Hello world</Chip>
-      );
-      assert.ok(wrapper.contains('Hello world'), 'should contain the children');
+    it('should render a div containing a span', () => {
+      assert.strictEqual(wrapper.name(), 'div');
+      assert.strictEqual(wrapper.childAt(0).is('span'), true, 'should be a span');
     });
 
-    it('merges styles and other props into the root node', () => {
-      const wrapper = themedShallow(
+    it('should merge user classes & spread custom props to the root node', () => {
+      assert.strictEqual(wrapper.hasClass(classes.root), true);
+      assert.strictEqual(wrapper.hasClass('my-Chip'), true);
+      assert.strictEqual(wrapper.prop('data-my-prop'), 'woof');
+      assert.strictEqual(wrapper.props().onClick, handleClick);
+    });
+
+    it('should have a tabIndex prop', () => {
+      assert.strictEqual(wrapper.props().tabIndex, 0);
+    });
+
+    it('should apply user value of tabIndex', () => {
+      wrapper = shallow(
         <Chip
-          style={{paddingRight: 200, color: 'purple', border: '1px solid tomato'}}
-          myProp="hello"
-        />
+          onClick={() => {}}
+          tabIndex={5} // eslint-disable-line jsx-a11y/tabindex-no-positive
+        >
+          Text Chip
+        </Chip>,
       );
-      const {style, myProp} = wrapper.props();
-      assert.strictEqual(style.paddingRight, 200);
-      assert.strictEqual(style.color, 'purple');
-      assert.strictEqual(style.border, '1px solid tomato');
-      assert.strictEqual(myProp, 'hello');
-    });
-
-    it('renders a label with an Avatar before', () => {
-      const wrapper = themedShallow(
-        <Chip>
-          <Avatar src="images/kolage-128.jpg" />
-          Hello World
-        </Chip>
-      );
-      const avatar = wrapper.children().at(0);
-      const label = wrapper.children().at(1);
-      assert.ok(avatar.is('Avatar'));
-      assert.ok(label.is('span'));
-      assert.strictEqual(label.children().node, 'Hello World', 'says hello world');
-    });
-
-    it('does not render a delete icon by default', () => {
-      const wrapper = themedShallow(
-        <Chip>Label</Chip>
-      );
-      assert.notOk(wrapper.find('NavigationCancel').length);
-    });
-
-    it('renders a delete icon after the label when onRequestDelete is provided', () => {
-      const wrapper = themedShallow(
-        <Chip onRequestDelete={spy()}>Label</Chip>
-      );
-      assert.ok(wrapper.childAt(1).is('NavigationCancel'));
+      assert.strictEqual(wrapper.props().tabIndex, 5);
     });
   });
 
-  describe('callbacks', () => {
-    it('triggers onRequestDelete when the delete icon is clicked', () => {
-      const handleRequestDelete = spy();
-      const wrapper = themedShallow(
-        <Chip onRequestDelete={handleRequestDelete}>Label</Chip>
+  describe('deletable Avatar chip', () => {
+    let wrapper;
+
+    before(() => {
+      wrapper = shallow(
+        <Chip
+          avatar={
+            <Avatar className="my-Avatar" data-my-prop="woof">
+              MB
+            </Avatar>
+          }
+          label="Text Avatar Chip"
+          onRequestDelete={() => {}}
+          className="my-Chip"
+          data-my-prop="woof"
+        />,
       );
-      wrapper.childAt(1).simulate('touchTap', {stopPropagation() {}});
-      assert.ok(handleRequestDelete.calledOnce);
     });
 
-    it('bubbles callbacks used internally', () => {
-      const events = [
-        'blur',
-        'focus',
-        'keyDown',
-        'keyboardFocus',
-        'mouseDown',
-        'mouseEnter',
-        'mouseUp',
-        'touchEnd',
-        'touchStart',
-      ];
+    it('should render a div containing an Avatar, span and svg', () => {
+      assert.strictEqual(wrapper.name(), 'div');
+      assert.strictEqual(wrapper.childAt(0).is(Avatar), true, 'should have an Avatar');
+      assert.strictEqual(wrapper.childAt(1).is('span'), true, 'should have a span');
+      assert.strictEqual(wrapper.childAt(2).is('pure(Cancel)'), true, 'should be an svg icon');
+    });
 
-      const handlers = {};
-      const props = {};
+    it('should merge user classes & spread custom props to the root node', () => {
+      assert.strictEqual(wrapper.hasClass(classes.root), true);
+      assert.strictEqual(wrapper.hasClass('my-Chip'), true);
+      assert.strictEqual(wrapper.prop('data-my-prop'), 'woof');
+    });
 
-      events.forEach((event) => {
-        handlers[event] = spy();
-        props[`on${event.charAt(0).toUpperCase() + event.slice(1)}`] = handlers[event];
-      });
+    it('should merge user classes & spread custom props to the Avatar node', () => {
+      assert.strictEqual(wrapper.childAt(0).hasClass(classes.avatar), true);
+      assert.strictEqual(wrapper.childAt(0).hasClass('my-Avatar'), true);
+      assert.strictEqual(wrapper.childAt(0).prop('data-my-prop'), 'woof');
+    });
 
-      const wrapper = themedShallow(
-        <Chip {...props}>
-          Step One
-        </Chip>
+    it('should have a tabIndex prop', () => {
+      assert.strictEqual(wrapper.props().tabIndex, 0);
+    });
+
+    it('should fire the function given in onDeleteRequest', () => {
+      const onRequestDeleteSpy = spy();
+      wrapper.setProps({ onRequestDelete: onRequestDeleteSpy });
+
+      wrapper.find('pure(Cancel)').simulate('click', { stopPropagation: () => {} });
+      assert.strictEqual(
+        onRequestDeleteSpy.callCount,
+        1,
+        'should have called the onRequestDelete hanlder',
       );
+    });
 
-      events.forEach((event) => {
-        wrapper.simulate(event, {stopPropagation() {}});
-        assert.ok(handlers[event].calledOnce, `should trigger the ${event} callback`);
-      });
+    it('should stop propagation in onDeleteRequest', () => {
+      const onRequestDeleteSpy = spy();
+      const stopPropagationSpy = spy();
+      wrapper.setProps({ onRequestDelete: onRequestDeleteSpy });
+
+      wrapper.find('pure(Cancel)').simulate('click', { stopPropagation: stopPropagationSpy });
+      assert.strictEqual(
+        stopPropagationSpy.callCount,
+        1,
+        'should have called the stopPropagation hanlder',
+      );
     });
   });
 
-  describe('prop: containerElement', () => {
-    it('should use div if no containerElement specified', () => {
-      const wrapper = themedShallow(
-        <Chip>Label</Chip>
+  describe('reacts to keyboard chip', () => {
+    let wrapper;
+    let onKeyDownSpy;
+
+    before(() => {
+      wrapper = shallow(
+        <Chip className="my-Chip" data-my-prop="woof">
+          Text Chip
+        </Chip>,
       );
-      const button = wrapper.dive({context: {muiTheme}});
-      assert.strictEqual(button.is('div'), true, 'should match an div element');
+
+      onKeyDownSpy = spy();
+      wrapper.setProps({ onKeyDown: onKeyDownSpy });
     });
 
-    it('should use the given string containerElement prop', () => {
-      const wrapper = themedShallow(
-        <Chip containerElement="span">Label</Chip>
-      );
-      const button = wrapper.dive({context: {muiTheme}});
-      assert.strictEqual(button.is('span'), true, 'should match an span element');
+    it('should call onKeyDown when a key is pressed', () => {
+      const anyKeydownEvent = {
+        keyCode: keycode('p'),
+      };
+      wrapper.find('div').simulate('keydown', anyKeydownEvent);
+      assert.strictEqual(onKeyDownSpy.callCount, 1, 'should have called onKeyDown');
+      assert(onKeyDownSpy.calledWith(anyKeydownEvent));
     });
 
-    it('should use the given ReactElement containerElement prop', () => {
-      const CustomElement = (props) => <a {...props} />;
-      const wrapper = themedShallow(
-        <Chip containerElement={<CustomElement />}>Label</Chip>
-      );
-      const button = wrapper.dive({context: {muiTheme}});
-      assert.strictEqual(button.is(CustomElement), true, 'should match the custom element');
+    describe('escape', () => {
+      let mount;
+
+      before(() => {
+        mount = createMount();
+      });
+
+      after(() => {
+        mount.cleanUp();
+      });
+
+      it('should unfocus when a esc key is pressed', () => {
+        const wrapper2 = mount(<Chip.Naked classes={{}}>Text Chip</Chip.Naked>);
+        const handleBlur = spy();
+        wrapper2.instance().chipRef.blur = handleBlur;
+        wrapper2.find('div').simulate('keydown', {
+          preventDefault: () => {},
+          keyCode: keycode('esc'),
+        });
+        assert.strictEqual(handleBlur.callCount, 1);
+      });
+    });
+
+    describe('onClick is defined', () => {
+      let onClickSpy;
+      before(() => {
+        onClickSpy = spy();
+        wrapper.setProps({ onClick: onClickSpy });
+      });
+
+      afterEach(() => {
+        onClickSpy.reset();
+      });
+
+      it('should call onClick when `space` is pressed ', () => {
+        const preventDefaultSpy = spy();
+        const spaceKeydownEvent = {
+          preventDefault: preventDefaultSpy,
+          keyCode: keycode('space'),
+        };
+        wrapper.find('div').simulate('keydown', spaceKeydownEvent);
+        assert.strictEqual(preventDefaultSpy.callCount, 1, 'should have stopped event propagation');
+        assert.strictEqual(onClickSpy.callCount, 1, 'should have called onClick');
+        assert(onClickSpy.calledWith(spaceKeydownEvent));
+      });
+
+      it('should call onClick when `enter` is pressed ', () => {
+        const preventDefaultSpy = spy();
+        const enterKeydownEvent = {
+          preventDefault: preventDefaultSpy,
+          keyCode: keycode('enter'),
+        };
+        wrapper.find('div').simulate('keydown', enterKeydownEvent);
+        assert.strictEqual(preventDefaultSpy.callCount, 1, 'should have stopped event propagation');
+        assert.strictEqual(onClickSpy.callCount, 1, 'should have called onClick');
+        assert(onClickSpy.calledWith(enterKeydownEvent));
+      });
+    });
+
+    describe('onRequestDelete is defined and `backspace` is pressed', () => {
+      it('should call onRequestDelete', () => {
+        const onRequestDeleteSpy = spy();
+        wrapper.setProps({ onRequestDelete: onRequestDeleteSpy });
+
+        const preventDefaultSpy = spy();
+        const backspaceKeydownEvent = {
+          preventDefault: preventDefaultSpy,
+          keyCode: keycode('backspace'),
+        };
+        wrapper.find('div').simulate('keydown', backspaceKeydownEvent);
+
+        assert.strictEqual(preventDefaultSpy.callCount, 1, 'should have stopped event propagation');
+        assert.strictEqual(onRequestDeleteSpy.callCount, 1, 'should have called onClick');
+        assert(onRequestDeleteSpy.calledWith(backspaceKeydownEvent));
+      });
     });
   });
 });
